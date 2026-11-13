@@ -6,7 +6,7 @@ import bundledCatalog from '../../../catalog/catalog.json'
 import licenses from '../../../catalog/licenses.json'
 import { makePaths } from './paths'
 import { UtilityEngine } from './engine'
-import { fakeAccounts, FakeEngine, fakeDownloadDeps } from './fake'
+import { FakeEngine, fakeDownloadDeps } from './fake'
 import { realDeps } from './downloader'
 import { loadBundledCatalog } from './catalog'
 import { Components } from './components'
@@ -25,7 +25,8 @@ import { pruneUndo } from './agent/journal'
 import { PythonRuntime, realRuntimeDeps } from './python/runtime'
 import { VisionInstaller } from './vision/install'
 import { macCalMail, setCalMailSource, setMacDeps } from './tools/mac'
-import { Accounts } from './accounts'
+import { accountsOff } from './accountsOff'
+import { hardenAllWebContents, isAppUrl, isExternalWebUrl, SECURE_WEB_PREFERENCES } from './security'
 import { VisionServer } from './vision/server'
 import { pickVision, VISION_MODELS, visionFitsGpu, visionGB } from './vision/catalog'
 import type { VisionState } from '../shared/types'
@@ -67,7 +68,7 @@ app.on('second-instance', () => {
 
 /** Links in replies open in the user's browser, never inside the app window. */
 function openExternally(url: string) {
-  if (!FAKE && /^https?:\/\//.test(url)) void shell.openExternal(url)
+  if (!FAKE && isExternalWebUrl(url)) void shell.openExternal(url)
 }
 
 let win: BrowserWindow | undefined
@@ -80,6 +81,11 @@ const mimeOf = (p: string) => MIME[p.split('.').pop()!.toLowerCase()] ?? 'applic
 // shows images the agent made, from chat folders and granted folders only
 protocol.registerSchemesAsPrivileged([{ scheme: 'hob-file', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }])
 
+// Khaled Chat: the app's own page; nothing else may be shown in the window or talk to the main process
+const indexFileUrl = () => pathToFileURL(join(__dirname, '../renderer/index.html')).toString()
+const isOwnPage = (url: string) => isAppUrl(url, indexFileUrl(), process.env.ELECTRON_RENDERER_URL)
+hardenAllWebContents(app)
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1100, height: 760, minWidth: 720, minHeight: 520,
@@ -91,7 +97,7 @@ function createWindow() {
     backgroundColor: titleBarColors(nativeTheme.shouldUseDarkColors).color,
     show: !BACKGROUND,
     // hidden pages would otherwise pause timers and animations
-    webPreferences: { preload: join(__dirname, '../preload/index.cjs'), sandbox: false, ...(BACKGROUND ? { backgroundThrottling: false } : {}) },
+    webPreferences: { preload: join(__dirname, '../preload/index.cjs'), ...SECURE_WEB_PREFERENCES, ...(BACKGROUND ? { backgroundThrottling: false } : {}) },
   })
   if (process.platform !== 'darwin') {
     win.setMenuBarVisibility(false)
@@ -103,10 +109,15 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => { openExternally(url); return { action: 'deny' } })
   win.webContents.on('will-navigate', (e, url) => {
     // a file dropped outside the composer must never replace the app (file://…/sales.csv)
-    const ownPage = process.env.ELECTRON_RENDERER_URL ? url.startsWith(process.env.ELECTRON_RENDERER_URL) : url === pathToFileURL(join(__dirname, '../renderer/index.html')).toString()
-    if (ownPage) return
+    if (isOwnPage(url)) return
     e.preventDefault()
     openExternally(url)
+  })
+  // redirects and frames: only the app's page in the top frame; sub-frames may not load file: or custom schemes
+  win.webContents.on('will-redirect', (e, url) => { if (!isOwnPage(url)) e.preventDefault() })
+  win.webContents.on('will-frame-navigate', (e) => {
+    if (e.isMainFrame) return
+    if (!/^(https?:|about:blank|data:|blob:)/i.test(e.url)) e.preventDefault()
   })
   if (process.env.ELECTRON_RENDERER_URL) win.loadURL(process.env.ELECTRON_RENDERER_URL)
   else win.loadFile(join(__dirname, '../renderer/index.html'))
@@ -253,12 +264,8 @@ app.whenReady().then(() => {
   // optional components, installed only after the person confirms them (Settings → Optional components)
   app.on('before-quit', () => vision.stop())
   // a Google or Microsoft account for calendar and email; on a Mac, the Calendar and Mail apps otherwise
-  const accounts = FAKE ? fakeAccounts() : new Accounts({
-    file: join(paths.root, 'accounts.bin'),
-    encrypt: (v) => (safeStorage.isEncryptionAvailable() ? Buffer.concat([Buffer.from('enc:'), safeStorage.encryptString(v)]) : Buffer.from(`plain:${v}`)),
-    decrypt: (b) => (b.subarray(0, 4).toString() === 'enc:' ? safeStorage.decryptString(b.subarray(4)) : b.toString().replace(/^plain:/, '')),
-    open: (url) => shell.openExternal(url),
-  })
+  // Khaled Chat: no Google or Microsoft sign-in (accountsOff.ts); on a Mac, the Calendar and Mail apps still work
+  const accounts = accountsOff()
   setCalMailSource(() => accounts.calMail() ?? (process.platform === 'darwin' ? macCalMail : undefined))
   const notices = new Notices({
     focused: () => !!win && win.isVisible() && !win.isMinimized() && win.isFocused(),
@@ -290,7 +297,7 @@ app.whenReady().then(() => {
     ...(vision.installer ? { vision: { ...vision.installer, get root() { return paths.vision } } } : {}),
     onChange: (list) => win?.webContents.send('components:changed', list),
   })
-  const ipc = registerIpc({ win: () => win, setup, store, python, paths, filesDir, allowed, search, speech: FAKE ? undefined : speech, plugins, vision, accounts, notices, removeHob, fake: FAKE, components })
+  const ipc = registerIpc({ win: () => win, setup, store, python, paths, filesDir, allowed, search, speech: FAKE ? undefined : speech, plugins, vision, accounts, notices, removeHob, fake: FAKE, components, isOwnPage })
   // Khaled Chat: code tools and web search are not installed once a model is ready (Hob did that quietly); they're
   // optional components. Plugins still start their own local tools.
   let codeToolsStarted = false

@@ -1,4 +1,4 @@
-import { app, clipboard, dialog, ipcMain, nativeTheme, net, shell, systemPreferences, type BrowserWindow, type OpenDialogOptions } from 'electron'
+import { app, clipboard, dialog, ipcMain as electronIpcMain, nativeTheme, net, shell, systemPreferences, type BrowserWindow, type OpenDialogOptions } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -35,6 +35,9 @@ import { checkFolders, cleanProject, withMissing } from './projects'
 import type { SearchResult } from './search/searxng'
 import { consent, parseKey } from './consent'
 import { fromAppWindow } from './ipcGuard'
+import { guardIpc } from './security'
+import { absPath, absPaths, approvalAnswer, attachments as attachmentsIn, bool, id as idIn, int, optId, plainObject, str } from './ipcValidate'
+import { ACCOUNTS_DISABLED_MESSAGE } from './accountsOff'
 import type { Components } from './components'
 
 export type IpcDeps = {
@@ -61,9 +64,14 @@ export type IpcDeps = {
   fake?: boolean
   /** Khaled Chat: optional parts, installed only after the person confirms (Settings → Optional components) */
   components?: Pick<Components, 'list' | 'info' | 'install' | 'cancel'>
+  /** Khaled Chat: the exact rule for the app's own page (security.ts isAppUrl); IPC from anything else is refused */
+  isOwnPage?(url: string): boolean
 }
 
 export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise<void> } {
+  // Khaled Chat: every handler below answers only the app window's own page (security.ts)
+  const fromApp = (e: Parameters<typeof fromAppWindow>[0]) => fromAppWindow(e, d.win(), process.env.ELECTRON_RENDERER_URL, d.isOwnPage)
+  const ipcMain = guardIpc(electronIpcMain, fromApp)
   const running = new RunningTurns()
   const send = (channel: string, ...args: unknown[]) => d.win()?.webContents.send(channel, ...args)
   // replies keep going when the user opens another chat; this holds their progress meanwhile
@@ -93,7 +101,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return info ?? { error: 'This download isn\'t available on this computer.' }
   })
   ipcMain.handle('downloads:approve', async (e, key: unknown) => {
-    if (!fromAppWindow(e, d.win())) return false
+    if (!fromApp(e)) return false
     const k = parseKey(key)
     if (!k) return false
     const info = k.kind === 'model' ? d.setup.downloadInfo(k.id) : await d.components?.info(k.id)
@@ -112,9 +120,9 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return !!k && k.kind === 'component' && !!d.components?.cancel(k.id)
   })
 
-  ipcMain.handle('copy', (_e, text: string) => clipboard.writeText(String(text)))
+  ipcMain.handle('copy', (_e, text: unknown) => clipboard.writeText(str(text, 'text', 10_000_000)))
   ipcMain.handle('setup:getState', () => d.setup.state)
-  ipcMain.handle('setup:confirm', (_e, modelId?: string) => { void d.setup.confirm(modelId) })
+  ipcMain.handle('setup:confirm', (_e, modelId?: unknown) => { void d.setup.confirm(optId(modelId, 'model id')) })
   ipcMain.handle('setup:retry', () => { void d.setup.retry() })
   ipcMain.handle('setup:pickDownloads', async () => {
     const win = d.win()
@@ -124,8 +132,9 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
   })
 
   ipcMain.handle('chats:list', () => d.store.listChats())
-  ipcMain.handle('chats:search', (_e, q: string) => d.store.searchChats(String(q)))
-  ipcMain.handle('chats:get', (_e, id: string) => {
+  ipcMain.handle('chats:search', (_e, q: unknown) => d.store.searchChats(str(q, 'search', 1000)))
+  ipcMain.handle('chats:get', (_e, rawId: unknown) => {
+    const id = idIn(rawId, 'chat id')
     const chat = d.store.getChat(id)
     const turn = live.get(id)
     return chat ? { chat, messages: d.store.messages(id), ...(turn ? { live: turn } : {}) } : null
@@ -136,8 +145,9 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     if (!reserved || existsSync(reserved) || dirname(reserved) !== d.filesDir()) reserved = nextChatDir(d.filesDir())
     return reserved
   }
-  ipcMain.handle('chats:create', (_e, projectId?: string | null) => {
-    const project = projectId ? d.store.getProject(String(projectId)) : undefined
+  ipcMain.handle('chats:create', (_e, rawProject?: unknown) => {
+    const projectId = optId(rawProject, 'project id')
+    const project = projectId ? d.store.getProject(projectId) : undefined
     const dir = reservedDir()
     reserved = undefined
     mkdirSync(dir, { recursive: true })
@@ -150,20 +160,21 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     pruneUndo(d.paths.undo, { taskIds: d.store.messages(id).flatMap((m) => (m.taskId ? [m.taskId] : [])) })
     d.store.deleteChat(id)
   }
-  ipcMain.handle('chats:remove', (_e, id: string) => removeChat(id))
-  ipcMain.handle('chats:rename', (_e, id: string, title: string) => {
-    const name = tidyTitle(String(title))
+  ipcMain.handle('chats:remove', (_e, id: unknown) => removeChat(idIn(id, 'chat id')))
+  ipcMain.handle('chats:rename', (_e, id: string, title: unknown) => {
+    id = idIn(id, 'chat id')
+    const name = tidyTitle(str(title, 'title', 1000))
     if (!name || !d.store.getChat(String(id))) return
     d.store.renameChat(String(id), name)
     send('chats:changed')
   })
-  ipcMain.handle('chats:pin', (_e, id: string, pinned: boolean) => {
-    d.store.pinChat(String(id), Boolean(pinned))
+  ipcMain.handle('chats:pin', (_e, id: unknown, pinned: unknown) => {
+    d.store.pinChat(idIn(id, 'chat id'), bool(pinned, 'pinned'))
     send('chats:changed')
   })
   // a reply still being written goes in as far as it got
-  ipcMain.handle('chats:save', async (_e, id: string) => {
-    const chat = d.store.getChat(String(id))
+  ipcMain.handle('chats:save', async (_e, id: unknown) => {
+    const chat = d.store.getChat(idIn(id, 'chat id'))
     if (!chat) return null
     const messages = d.store.messages(chat.id)
     const turn = live.get(chat.id)
@@ -177,9 +188,10 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return r.filePath
   })
   // editing a sent message or trying a reply again: the chat goes back to its first n messages (never mid-reply)
-  ipcMain.handle('chats:keep', (_e, id: string, n: number) => {
-    if (live.get(String(id))) return false
-    d.store.keepMessages(String(id), Number(n))
+  ipcMain.handle('chats:keep', (_e, rawId: unknown, rawN: unknown) => {
+    const id = idIn(rawId, 'chat id'), n = int(rawN, 'message count')
+    if (live.get(id)) return false
+    d.store.keepMessages(id, n)
     return true
   })
   /** every chat, gone from Hob; the files they made stay where they are (the page asks first) */
@@ -189,11 +201,12 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     send('chats:changed')
   })
 
-  ipcMain.handle('files:add', (_e, chatId: string, paths: string[]) => {
-    const chat = d.store.getChat(chatId)
+  ipcMain.handle('files:add', (_e, chatId: unknown, rawPaths: unknown) => {
+    const chat = d.store.getChat(idIn(chatId, 'chat id'))
+    const paths = absPaths(rawPaths)
     if (!chat) return []
     try {
-      return copyIn(chat.dir, paths.filter(Boolean))
+      return copyIn(chat.dir, paths)
     } catch (err) {
       if (err instanceof TooBigError) return { error: 'too-big', gb: err.bytes / 1e9 }
       if (err instanceof AlreadyHereError) return { error: 'already-here', message: err.message }
@@ -201,8 +214,8 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     }
   })
   /** a pasted screenshot or copied image: saved into the chat's folder, then attached like a dropped file */
-  ipcMain.handle('files:paste', (_e, chatId: string, bytes: Uint8Array, type: string) => {
-    const chat = d.store.getChat(chatId)
+  ipcMain.handle('files:paste', (_e, chatId: unknown, bytes: Uint8Array, type: string) => {
+    const chat = d.store.getChat(idIn(chatId, 'chat id'))
     const ext = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' } as Record<string, string>)[String(type)]
     if (!chat || !ext || !(bytes instanceof Uint8Array) || bytes.length > 30 * 1024 * 1024) return []
     const stamp = new Date().toISOString().slice(0, 19).replace('T', ' at ').replace(/:/g, '.')
@@ -215,13 +228,14 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     const r = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })
     return r.canceled ? [] : r.filePaths
   })
-  ipcMain.handle('files:open', (_e, p: string) => {
+  ipcMain.handle('files:open', (_e, raw: unknown) => {
+    const p = absPath(raw)
     if (!d.allowed(p)) return
     // the model can write scripts; "Open" must never run one
     if (isRunnable(p)) shell.showItemInFolder(p)
     else void shell.openPath(p)
   })
-  ipcMain.handle('files:show', (_e, p: string) => { if (d.allowed(p)) shell.showItemInFolder(p) })
+  ipcMain.handle('files:show', (_e, raw: unknown) => { const p = absPath(raw); if (d.allowed(p)) shell.showItemInFolder(p) })
   /** a chart as PNG: the person picks where (Downloads by default); returns where it went, or null */
   ipcMain.handle('files:saveImage', async (_e, dataUrl: string, name: string) => {
     const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl))
@@ -245,8 +259,8 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     send('chats:changed')
     return withMissing(made)
   })
-  ipcMain.handle('projects:update', (_e, id: string, input: unknown) => {
-    const cur = d.store.getProject(String(id))
+  ipcMain.handle('projects:update', (_e, id: unknown, input: unknown) => {
+    const cur = d.store.getProject(idIn(id, 'project id'))
     if (!cur) return { error: t('This project was removed.') }
     const p = cleanProject(input, homedir(), own(), cur.folders)
     if ('error' in p) return p
@@ -254,16 +268,16 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     send('chats:changed')
     return withMissing(d.store.getProject(cur.id)!)
   })
-  ipcMain.handle('projects:remove', (_e, id: string) => { d.store.removeProject(String(id)); send('chats:changed') })
+  ipcMain.handle('projects:remove', (_e, id: unknown) => { d.store.removeProject(idIn(id, 'project id')); send('chats:changed') })
   ipcMain.handle('projects:pickFolders', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'multiSelections', 'createDirectory'] })
     return r.canceled ? [] : check(r.filePaths)
   })
-  ipcMain.handle('projects:checkFolders', (_e, paths: string[]) => check((paths ?? []).map(String)))
+  ipcMain.handle('projects:checkFolders', (_e, paths: unknown) => check(absPaths(paths ?? [])))
   /** the main folder, in the file manager */
   /** one of the project's folders (its main one by default) in the file manager */
-  ipcMain.handle('projects:open', async (_e, id: string, folder?: string) => {
-    const folders = d.store.getProject(String(id))?.folders ?? []
+  ipcMain.handle('projects:open', async (_e, id: unknown, folder?: string) => {
+    const folders = d.store.getProject(idIn(id, 'project id'))?.folders ?? []
     const f = folder && folders.includes(String(folder)) ? String(folder) : folders[0]
     if (f && existsSync(f)) await shell.openPath(f)
   })
@@ -299,8 +313,8 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     await readAhead({ ...promptDeps, engine: d.setup.engine, tools: await turnTools(0) }, target).catch(() => {})
   }
   // pending: names of files attached in the message box, so the folder is read ahead as it will be when sent
-  ipcMain.handle('chat:warm', (_e, chatId: string | null, projectId: string | null, pending?: string[]) => {
-    viewing = { chatId: chatId ? String(chatId) : null, projectId: projectId ? String(projectId) : null, pending: Array.isArray(pending) ? pending.map(String) : [] }
+  ipcMain.handle('chat:warm', (_e, chatId: unknown, projectId: unknown, pending?: unknown) => {
+    viewing = { chatId: optId(chatId, 'chat id') ?? null, projectId: optId(projectId, 'project id') ?? null, pending: Array.isArray(pending) ? pending.slice(0, 200).map((p) => str(p, 'file name', 1024)) : [] }
     void warm()
   })
   // a model just loaded (start-up, or a switch): read ahead at once, before the first message
@@ -311,7 +325,9 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     readyModel = id
   })
 
-  ipcMain.handle('chat:send', async (_e, chatId: string, requestId: string, text: string, attachments: Attachment[]) => {
+  ipcMain.handle('chat:send', async (_e, rawChat: unknown, rawRequest: unknown, rawText: unknown, rawAttachments: unknown) => {
+    const chatId = idIn(rawChat, 'chat id'), requestId = idIn(rawRequest, 'request id'), text = str(rawText, 'message', 2_000_000)
+    const attachments: Attachment[] = attachmentsIn(rawAttachments)
     const chat = d.store.getChat(chatId)
     // the user is in this chat now (a new one has just been made): read it ahead after the reply
     if (chat) viewing = { chatId: chat.id, projectId: chat.projectId }
@@ -355,10 +371,14 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     }
   })
   ipcMain.handle('chat:live', () => live.list())
-  ipcMain.handle('chat:stop', (_e, requestId: string) => running.stop(requestId))
-  ipcMain.handle('approval:answer', (_e, id: string, answer: ApprovalAnswer) => { live.answered(String(id)); approvals.answer(String(id), answer) })
+  ipcMain.handle('chat:stop', (_e, requestId: unknown) => running.stop(idIn(requestId, 'request id')))
+  ipcMain.handle('approval:answer', (_e, rawId: unknown, rawAnswer: unknown) => {
+    const id = idIn(rawId, 'approval id'), answer: ApprovalAnswer = approvalAnswer(rawAnswer)
+    live.answered(id); approvals.answer(id, answer)
+  })
 
-  ipcMain.handle('task:undo', async (_e, messageId: number) => {
+  ipcMain.handle('task:undo', async (_e, rawMessage: unknown) => {
+    const messageId = int(rawMessage, 'message id')
     const m = d.store.getMessage(messageId)
     if (!m?.taskId || !m.undoable || m.undone) return { done: false, failed: 0 }
     const { failed } = await undo(d.store.undoOps(m.taskId) as UndoOp[], trash)
@@ -368,7 +388,8 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
   })
 
   ipcMain.handle('settings:get', userSettings)
-  ipcMain.handle('settings:set', (_e, patch: Partial<UserSettings>) => {
+  ipcMain.handle('settings:set', (_e, rawPatch: unknown) => {
+    const patch = plainObject(rawPatch, 'settings') as Partial<UserSettings>
     updateSettings(d.paths.settings, {
       ...(patch.webAccess !== undefined ? { webAccess: !!patch.webAccess } : {}),
       ...(patch.filesDir && validFilesDir(String(patch.filesDir)) ? { filesDir: String(patch.filesDir) } : {}),
@@ -402,11 +423,8 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
   // where Google, Exchange and other accounts are added to Calendar and Mail
   const accountsState = () => ({ available: d.accounts.available(), current: d.accounts.current() ?? null })
   ipcMain.handle('accounts:get', () => accountsState())
-  ipcMain.handle('accounts:signIn', async (_e, id: ProviderId) => {
-    if (id !== 'google' && id !== 'microsoft') throw new Error('Unknown account')
-    try { await d.accounts.signIn(id) } finally { send('accounts:changed', accountsState()) }
-    return accountsState()
-  })
+  // Khaled Chat: no Google or Microsoft sign-in, whatever the renderer asks (accountsOff.ts)
+  ipcMain.handle('accounts:signIn', async (_e, _id: ProviderId) => { throw new Error(ACCOUNTS_DISABLED_MESSAGE) })
   ipcMain.handle('accounts:cancel', () => d.accounts.cancelSignIn())
   ipcMain.handle('accounts:signOut', () => { d.accounts.signOut(); send('accounts:changed', accountsState()); return accountsState() })
   ipcMain.handle('mac:openAccounts', () => { if (process.platform === 'darwin') void shell.openExternal('x-apple.systempreferences:com.apple.Internet-Accounts-Settings.extension') })
@@ -423,8 +441,8 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return { modelBase: `hob-file://f/${encodeURIComponent(d.speech.dir)}/` }
   })
   ipcMain.handle('models:list', () => d.setup.listModels())
-  ipcMain.handle('models:use', (_e, id: string) => { void d.setup.useModel(id) })
-  ipcMain.handle('models:remove', (_e, id: string) => d.setup.deleteModel(id))
+  ipcMain.handle('models:use', (_e, id: unknown) => { void d.setup.useModel(idIn(id, 'model id')) })
+  ipcMain.handle('models:remove', (_e, id: unknown) => d.setup.deleteModel(idIn(id, 'model id')))
   ipcMain.handle('models:cancel', () => d.setup.cancel())
   ipcMain.handle('storage:get', () => {
     const chatModelsGB = sizeOf(d.paths.models) / 1e9
@@ -433,10 +451,20 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return { modelsGB: chatModelsGB + imageSupportGB + voiceModelsGB, chatModelsGB, imageSupportGB, voiceModelsGB, filesGB: sizeOf(d.filesDir()) / 1e9, codeToolsGB: sizeOf(d.paths.python) / 1e9 }
   })
 
-  ipcMain.handle('storage:removeHob', () => d.removeHob())
+  ipcMain.handle('storage:removeHob', async () => {
+    // Khaled Chat: deleting the app and its data is confirmed by the main process too, in a system dialog the page
+    // can't answer for itself
+    const win = d.win()
+    if (!d.fake && win) {
+      const r = await dialog.showMessageBox(win, { type: 'warning', buttons: [t('Remove'), t('Cancel')], defaultId: 1, cancelId: 1, message: t('Remove Hob and everything it downloaded?'), detail: t('Your chats, models and settings are deleted. Files in your chat folders stay.') })
+      if (r.response !== 0) return false
+    }
+    await d.removeHob()
+    return true
+  })
 
   ipcMain.handle('plugins:list', () => d.plugins.list())
-  ipcMain.handle('plugins:setEnabled', (_e, id: string, on: boolean) => { d.plugins.setEnabled(String(id), !!on); pluginsChanged() })
+  ipcMain.handle('plugins:setEnabled', (_e, id: unknown, on: unknown) => { d.plugins.setEnabled(idIn(id, 'plugin id'), bool(on, 'enabled')); pluginsChanged() })
   /** add a plugin folder, .zip or .mcpb; ones that run their own program ask first */
   const addPlugin = async (path: string, ask: boolean) => {
     const info = d.plugins.inspect(path)
@@ -463,7 +491,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return addPlugin(r.filePaths[0], true)
   })
   // dropped on the Plugins screen
-  ipcMain.handle('plugins:addFile', (_e, path: string) => addPlugin(String(path), true))
+  ipcMain.handle('plugins:addFile', (_e, path: unknown) => addPlugin(absPath(path), true))
   ipcMain.handle('plugins:link', async () => {
     const r = await dialog.showOpenDialog({ title: t('Link a plugin folder'), buttonLabel: t('Link'), properties: ['openDirectory'] })
     if (r.canceled || !r.filePaths[0]) return null
@@ -471,9 +499,9 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     pluginsChanged()
     return res
   })
-  ipcMain.handle('plugins:remove', (_e, id: string) => { d.plugins.remove(String(id)); pluginsChanged() })
+  ipcMain.handle('plugins:remove', (_e, id: unknown) => { d.plugins.remove(idIn(id, 'plugin id')); pluginsChanged() })
   ipcMain.handle('plugins:show', (_e, id: string) => { const p = d.plugins.list().find((x) => x.id === id); if (p) shell.showItemInFolder(p.dir) })
-  ipcMain.handle('plugins:setSetting', (_e, id: string, key: string, value: string) => { d.plugins.setSetting(String(id), String(key), String(value ?? '')); pluginsChanged() })
+  ipcMain.handle('plugins:setSetting', (_e, id: unknown, key: unknown, value: unknown) => { d.plugins.setSetting(idIn(id, 'plugin id'), str(key, 'setting', 200), str(value ?? '', 'value', 100_000)); pluginsChanged() })
   ipcMain.handle('plugins:saveSkill', (_e, s: NewSkill, replace?: boolean) => {
     const r = d.plugins.saveSkill({ name: String(s?.name ?? ''), description: String(s?.description ?? ''), instructions: String(s?.instructions ?? '') }, { replace: !!replace })
     pluginsChanged()
@@ -484,14 +512,31 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return s ? { name: s.name, description: s.description, instructions: s.body } : null
   })
   ipcMain.handle('plugins:removeSkill', (_e, name: string) => { d.plugins.removeSkill(String(name)); pluginsChanged() })
-  ipcMain.handle('plugins:connectApp', async (_e, o: { name: string; command: string; env?: string }) => {
-    const r = d.plugins.connectApp({ name: String(o?.name ?? ''), command: String(o?.command ?? ''), env: o?.env ? String(o.env) : undefined })
+  ipcMain.handle('plugins:connectApp', async (_e, raw: unknown) => {
+    const o = plainObject(raw, 'app')
+    const conn = { name: str(o.name ?? '', 'name', 200), command: str(o.command ?? '', 'command', 100_000), env: o.env ? str(o.env, 'settings', 100_000) : undefined }
+    // Khaled Chat: connecting an app runs a program on this computer (or talks to a server): the main process asks
+    // in a system dialog, showing exactly what will run, before anything is saved
+    const win = d.win()
+    if (!d.fake && win) {
+      const cmd = conn.command.trim()
+      const remote = /^https?:\/\//i.test(cmd)
+      const shown = cmd.length > 600 ? `${cmd.slice(0, 600)}…` : cmd
+      const ok = await dialog.showMessageBox(win, {
+        type: 'warning', buttons: [t('Connect'), t('Cancel')], defaultId: 1, cancelId: 1,
+        message: t('Connect “{name}”?', { name: conn.name || t('this app') }),
+        detail: `${remote ? t('Hob will send your requests to this server:') : t('This runs a program on your computer with full access to it. Only connect apps you trust.')}\n\n${shown}`,
+      })
+      if (ok.response !== 0) return { ok: false, error: t('Cancelled.') }
+    }
+    const r = d.plugins.connectApp(conn)
     pluginsChanged()
     return r
   })
   // connect now, opening the browser if the app asks the user to sign in; Cancel stops waiting
   const connecting = new Map<string, AbortController>()
-  ipcMain.handle('plugins:connect', async (_e, id: string) => {
+  ipcMain.handle('plugins:connect', async (_e, rawId: unknown) => {
+    const id = idIn(rawId, 'plugin id')
     connecting.get(id)?.abort()
     const ac = new AbortController()
     connecting.set(id, ac)
@@ -501,7 +546,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     }
   })
   ipcMain.handle('plugins:cancelConnect', (_e, id: string) => { connecting.get(String(id))?.abort() })
-  ipcMain.handle('plugins:signOut', (_e, id: string) => { d.plugins.signOut(String(id)); pluginsChanged() })
+  ipcMain.handle('plugins:signOut', (_e, id: unknown) => { d.plugins.signOut(idIn(id, 'plugin id')); pluginsChanged() })
   ipcMain.handle('plugins:choosePath', async (_e, kind: string, multiple: boolean) => {
     const r = await dialog.showOpenDialog({ properties: [kind === 'file' ? 'openFile' : 'openDirectory', ...(multiple ? ['multiSelections' as const] : [])] })
     return r.canceled ? [] : r.filePaths

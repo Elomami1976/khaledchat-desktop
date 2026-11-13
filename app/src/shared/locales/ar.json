@@ -849,5 +849,12 @@
   "Size": "Size",
   "Turns your speech into text on this computer.": "Turns your speech into text on this computer.",
   "this": "this",
-  "{size} already downloaded; it continues from there": "{size} already downloaded; it continues from there"
+  "{size} already downloaded; it continues from there": "{size} already downloaded; it continues from there",
+  "Cancelled.": "Cancelled.",
+  "Connect “{name}”?": "Connect “{name}”?",
+  "Hob will send your requests to this server:": "Hob will send your requests to this server:",
+  "Remove Hob and everything it downloaded?": "Remove Hob and everything it downloaded?",
+  "This runs a program on your computer with full access to it. Only connect apps you trust.": "This runs a program on your computer with full access to it. Only connect apps you trust.",
+  "Your chats, models and settings are deleted. Files in your chat folders stay.": "Your chats, models and settings are deleted. Files in your chat folders stay.",
+  "this app": "this app"
 }
