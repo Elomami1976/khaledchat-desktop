@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tarCmd } from '../tar'
+import { componentKey, consent as appConsent, type DownloadConsent } from '../consent'
+
+export const VISION_NOT_INSTALLED = "Image support isn't installed, and Khaled Chat never downloads it on its own. Tell the user they can install it in Settings → Optional components."
+const KEY = componentKey('vision')
 import { ensureModelFile, fileNameFor, type DownloadDeps } from '../downloader'
 import type { RuntimeDeps } from '../python/runtime'
 import type { VisionState } from '../../shared/types'
@@ -19,6 +23,8 @@ export type VisionDeps = {
   exec: RuntimeDeps['exec']
   /** fake mode: every file has this hash */
   sha256Override?: string
+  /** Khaled Chat: whose OK the download needs (tests pass their own) */
+  consent?: DownloadConsent
 }
 
 const MARKER = 'ready.json'
@@ -70,24 +76,49 @@ export class VisionInstaller {
   ensure(): Promise<void> {
     if (this.isReady()) { this.chosen = this.installed(); if (this._state.phase !== 'ready') this.set(this.ready()); return Promise.resolve() }
     if (!this.supported) return Promise.reject(new Error(`Seeing images isn't available on this computer (${this.deps.platformKey}).`))
-    return (this.installing ??= this.install().finally(() => { this.installing = undefined }))
+    // Khaled Chat: only under the person's OK (Settings → Optional components), never in the background
+    return (this.installing ??= this.consent.use(KEY, () => this.install((this.stopping = new AbortController()).signal), VISION_NOT_INSTALLED)
+      .finally(() => { this.installing = undefined }))
   }
 
-  private async install() {
+  private stopping: AbortController | undefined
+  private get consent() { return this.deps.consent ?? appConsent }
+  get isInstalling() { return !!this.installing }
+  /** stop the download in progress; model files fetched so far are kept and resume after a new OK */
+  cancel(): boolean {
+    if (!this.installing || !this.stopping) return false
+    this.stopping.abort()
+    return true
+  }
+
+  /** the files a download would fetch, for the confirmation dialog */
+  async plan(): Promise<{ model: VisionModel; files: { name: string; url: string; bytes: number }[] }> {
+    const model = this.chosen ?? await this.deps.choose()
+    const servers = SERVER_FILES[this.deps.platformKey]
+    const files = [model.model, model.mmproj, ...(servers ? [servers.gpu, ...(servers.cpu ? [servers.cpu] : [])] : [])]
+    return { model, files: files.map((f) => ({ name: f.url.split('/').pop()!, url: f.url, bytes: f.bytes })) }
+  }
+
+  private async install(signal: AbortSignal) {
     this.chosen = await this.deps.choose()
     const files = [this.model.model, this.model.mmproj]
     const server = SERVER_FILES[this.deps.platformKey].gpu
-    const total = files.reduce((s, f) => s + f.bytes, 0) + server.bytes
+    // Khaled Chat: the plain CPU server comes with the confirmed download, so a graphics driver problem later
+    // doesn't need a second, unconfirmed one
+    const cpu = SERVER_FILES[this.deps.platformKey].cpu
+    const total = files.reduce((s, f) => s + f.bytes, 0) + server.bytes + (cpu?.bytes ?? 0)
     let done = 0
     const progress = (part: number) => this.set({ phase: 'downloading', progress: Math.min(1, (done + part) / total) })
     try {
       progress(0)
       mkdirSync(this.modelsDir, { recursive: true })
       for (const f of files) {
-        await ensureModelFile({ url: f.url, sha256: this.deps.sha256Override ?? f.sha256, sizeGB: f.bytes / 1e9, dir: this.modelsDir, onProgress: ({ fraction }) => progress(fraction * f.bytes) }, this.deps.download)
+        await ensureModelFile({ url: f.url, sha256: this.deps.sha256Override ?? f.sha256, sizeGB: f.bytes / 1e9, dir: this.modelsDir, consentKey: KEY, consent: this.consent, signal, onProgress: ({ fraction }) => progress(fraction * f.bytes) }, this.deps.download)
         done += f.bytes
       }
-      await this.unpackServer(server, false, (p) => progress(p * server.bytes))
+      await this.unpackServer(server, false, (p) => progress(p * server.bytes), signal)
+      done += server.bytes
+      if (cpu) await this.unpackServer(cpu, true, (p) => progress(p * cpu.bytes), signal)
       writeFileSync(join(this.root, MARKER), JSON.stringify({ model: this.model.id, build: SERVER_BUILD }))
       this.set(this.ready())
     } catch (err) {
@@ -96,11 +127,13 @@ export class VisionInstaller {
     }
   }
 
-  private async unpackServer(f: VisionFile, cpu: boolean, onProgress: (fraction: number) => void = () => {}) {
+  private async unpackServer(f: VisionFile, cpu: boolean, onProgress: (fraction: number) => void = () => {}, signal?: AbortSignal) {
     const dir = this.serverDir(cpu)
     if (this.findBinary(dir)) return
+    // Khaled Chat: never fetched outside a confirmed image-support download
+    this.consent.assert(KEY, VISION_NOT_INSTALLED)
     const name = f.url.split('/').pop()!
-    const archive = await this.deps.fetchFile(f.url, this.deps.sha256Override ?? f.sha256, f.bytes / 1e9, this.root, onProgress, name)
+    const archive = await this.deps.fetchFile(f.url, this.deps.sha256Override ?? f.sha256, f.bytes / 1e9, this.root, onProgress, name, signal)
     rmSync(dir, { recursive: true, force: true })
     mkdirSync(dir, { recursive: true })
     await this.deps.exec(tarCmd(this.deps.platformKey), name.endsWith('.zip') ? ['-xf', archive, '-C', dir] : ['-xzf', archive, '-C', dir])

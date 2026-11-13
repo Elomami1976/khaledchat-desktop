@@ -5,9 +5,10 @@ import { cpuTensorsFirst } from './gguf/reorder'
 import { ChecksumError, DiskSpaceError, ensureModelFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps, type Progress } from './downloader'
 import { InsufficientMemoryError, type Engine } from './engine'
 import { loadSettings, updateSettings } from './settings'
-import type { ModelOption, ModelSummary, SetupState } from '../shared/types'
+import type { DownloadInfo, ModelOption, ModelSummary, SetupState } from '../shared/types'
 import type { ModelRow } from '../shared/agent'
 import { t } from '../shared/i18n'
+import { consent as appConsent, ConsentRequiredError, modelKey, type DownloadConsent } from './consent'
 
 export type SetupDeps = {
   engine: Engine
@@ -22,6 +23,8 @@ export type SetupDeps = {
   sha256Override?: string
   /** waits between download retries; one retry per entry */
   retryDelaysMs?: number[]
+  /** Khaled Chat: whose OKs downloads need (tests pass their own) */
+  consent?: DownloadConsent
 }
 
 const DISK_HEADROOM_GB = 10
@@ -45,6 +48,7 @@ export function computerName(hw: Hardware): string {
 export function friendly(err: unknown): string {
   if (err instanceof DiskSpaceError) return t('Not enough disk space. Free up {gb} GB and try again.', { gb: err.needGB })
   if (err instanceof ChecksumError) return t('The download was corrupted. Try again.')
+  if (err instanceof ConsentRequiredError) return t('Downloads start only after you confirm them. Nothing was downloaded.')
   const msg = err instanceof Error ? err.message : String(err)
   if (/fetch failed|ENOTFOUND|ECONN|ETIMEDOUT|EAI_AGAIN|network|socket/i.test(msg)) {
     return t('Download interrupted. Check your connection and try again.')
@@ -127,8 +131,9 @@ export class SetupController {
         if (!r.recommended) return this.set({ phase: 'error', message: t('Hob needs at least 8 GB of memory to run on this computer.') })
 
         const settings = loadSettings(this.deps.settingsPath)
-        const pending = this.choices().find((c) => c.model.id === settings.pendingModelId)
-        if (pending) return await this.install(pending)
+        // Khaled Chat: an interrupted download is never resumed on its own. The choose screen offers it, and it
+        // continues only after the person confirms it again (a restart never carries an OK over: consent.ts)
+        const pending = this.choices().find((c) => c.model.id === settings.pendingModelId && !this.verified(c))
         const savedChoice = this.choices().find((c) => c.model.id === settings.activeModelId)
         if (savedChoice && this.verified(savedChoice)) return await this.loadWithFallback(savedChoice)
         // first launch with a model already in place (copied over from another computer): use it
@@ -139,6 +144,7 @@ export class SetupController {
           phase: 'choose', recommended: summarize(r.recommended), models: this.modelOptions(), liteMode: r.liteMode, needsDiskGB: r.recommended.needsDiskGB,
           computer: computerName(hw), ...(r.starter && r.starter.model.id !== r.recommended.model.id ? { starter: summarize(r.starter) } : {}),
           ...(this.deps.downloads ? { downloadsDir: this.deps.downloads.dir() } : {}),
+          ...(pending ? { resume: summarize(pending) } : {}),
         })
       } catch (err) {
         this.set({ phase: 'error', message: friendly(err) })
@@ -167,6 +173,21 @@ export class SetupController {
     if (this._state.phase !== 'choose' || !this.deps.downloads) return Promise.resolve()
     this.deps.downloads.move(dir)
     return this.start()
+  }
+
+  /** Khaled Chat: what the confirmation dialog shows for a catalog model (undefined: not one this computer can use) */
+  downloadInfo(id: string): DownloadInfo | undefined {
+    const c = [...this.choices(), ...(this.starter ? [this.starter] : [])].find((x) => x.model.id === id)
+    if (!c) return undefined
+    const host = new URL(c.build.url).host
+    const partialGB = Math.round(partialDownloadGB(this.deps.modelsDir, c.build.url) * 100) / 100
+    return {
+      key: modelKey(id), name: `${c.model.name} (${c.build.quant})`, sizeGB: c.build.sizeGB, sizeEstimated: false,
+      ...(partialGB > 0 ? { partialGB } : {}),
+      sources: [host], destination: this.deps.modelsDir, license: c.model.license,
+      parts: [{ name: fileNameFor(c.build.url), source: c.build.url, sizeGB: c.build.sizeGB, license: c.model.license }],
+      note: t('Checked against its published SHA-256 checksum before use.'),
+    }
   }
 
   /** Settings → Models */
@@ -225,7 +246,24 @@ export class SetupController {
     return true
   }
 
+  /**
+   * Khaled Chat: a model that isn't downloaded yet is fetched only under the person's OK for it (consent.ts),
+   * which this download uses up. Without one nothing is fetched and nothing is remembered.
+   */
   private async install(target: Choice) {
+    if (this.verified(target)) return this.installConsented(target)
+    try {
+      await this.consent.use(modelKey(target.model.id), () => this.installConsented(target))
+    } catch (err) {
+      if (!(err instanceof ConsentRequiredError)) throw err
+      if (this.active) this.set({ phase: 'ready', model: summarize(this.active), liteMode: this.active.model.agentScore < LITE_AGENT_SCORE, note: friendly(err) })
+      else this.set({ phase: 'error', message: friendly(err) })
+    }
+  }
+
+  private get consent() { return this.deps.consent ?? appConsent }
+
+  private async installConsented(target: Choice) {
     const summary = summarize(target)
     const dir = this.deps.modelsDir
     this.stopping = new AbortController()
@@ -233,7 +271,8 @@ export class SetupController {
       const starter = this.starter
       // first run only: while switching models later, the current one keeps chat working
       // and only when it's the quicker download: a smaller pick is fetched on its own
-      const useStarter = !this.active && !!starter && starter.build.sizeGB < target.build.sizeGB && !this.verified(target)
+      // Khaled Chat: no second model fetched alongside the one the person confirmed (each download is OK'd on its own)
+      const useStarter = false as boolean && !this.active && !!starter && starter.build.sizeGB < target.build.sizeGB && !this.verified(target)
 
       // Check space for everything we're about to fetch before fetching anything.
       const toFetch = [useStarter ? starter : null, target].filter((c): c is Choice => !!c && !this.verified(c))
@@ -287,7 +326,7 @@ export class SetupController {
     const signal = this.stopping?.signal
     for (let attempt = 0; ; attempt++) {
       try {
-        const path = await ensureModelFile({ url: c.build.url, sha256: this.sha(c), sizeGB: c.build.sizeGB, dir: this.deps.modelsDir, onProgress, signal }, this.deps.download)
+        const path = await ensureModelFile({ url: c.build.url, sha256: this.sha(c), sizeGB: c.build.sizeGB, dir: this.deps.modelsDir, consentKey: modelKey(c.model.id), consent: this.consent, onProgress, signal }, this.deps.download)
         // Macs: keep what only the processor reads out of the graphics chip's memory (once per file)
         if (process.platform === 'darwin') await cpuTensorsFirst(path).catch((err) => console.warn('the model file was not reordered', err))
         return path
@@ -318,6 +357,8 @@ export class SetupController {
     let failure: unknown
     for (const [i, c] of [first, ...smaller].entries()) {
       if (failure && !this.verified(c)) continue
+      // Khaled Chat: a lighter model is only fallen back to if it's already downloaded; never fetched unasked
+      if (i > 0 && !this.verified(c)) continue
       // a failed download is an error to show; a failed load means trying another model
       let loading = false
       try {

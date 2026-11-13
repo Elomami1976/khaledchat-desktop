@@ -33,6 +33,9 @@ import { chatFileName, chatMarkdown } from '../shared/chatExport'
 import { systemLocale } from './locale'
 import { checkFolders, cleanProject, withMissing } from './projects'
 import type { SearchResult } from './search/searxng'
+import { consent, parseKey } from './consent'
+import { fromAppWindow } from './ipcGuard'
+import type { Components } from './components'
 
 export type IpcDeps = {
   win(): BrowserWindow | undefined
@@ -56,6 +59,8 @@ export type IpcDeps = {
   /** Settings → Remove Hob */
   removeHob(): Promise<void>
   fake?: boolean
+  /** Khaled Chat: optional parts, installed only after the person confirms (Settings → Optional components) */
+  components?: Pick<Components, 'list' | 'info' | 'install' | 'cancel'>
 }
 
 export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise<void> } {
@@ -78,6 +83,34 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
   d.vision?.onState((s) => send('vision:state', s))
   ipcMain.handle('vision:getState', () => d.vision?.state() ?? { phase: 'off' })
   ipcMain.handle('vision:retry', () => d.vision?.retry())
+
+  // Khaled Chat: download confirmations. info() feeds the dialog; approve() is the person's OK for one download,
+  // accepted only from the app's own window and only for something that can be downloaded (consent.ts)
+  ipcMain.handle('downloads:info', async (_e, key: unknown) => {
+    const k = parseKey(key)
+    if (!k) return { error: 'Unknown download.' }
+    const info = k.kind === 'model' ? d.setup.downloadInfo(k.id) : await d.components?.info(k.id)
+    return info ?? { error: 'This download isn\'t available on this computer.' }
+  })
+  ipcMain.handle('downloads:approve', async (e, key: unknown) => {
+    if (!fromAppWindow(e, d.win())) return false
+    const k = parseKey(key)
+    if (!k) return false
+    const info = k.kind === 'model' ? d.setup.downloadInfo(k.id) : await d.components?.info(k.id)
+    if (!info) return false
+    consent.grant(info.key)
+    return true
+  })
+  ipcMain.handle('components:list', () => d.components?.list() ?? [])
+  ipcMain.handle('components:install', (_e, id: unknown) => {
+    const k = parseKey(`component:${String(id)}`)
+    if (!k || k.kind !== 'component' || !d.components) return d.components?.list() ?? []
+    return d.components.install(k.id)
+  })
+  ipcMain.handle('components:cancel', (_e, id: unknown) => {
+    const k = parseKey(`component:${String(id)}`)
+    return !!k && k.kind === 'component' && !!d.components?.cancel(k.id)
+  })
 
   ipcMain.handle('copy', (_e, text: string) => clipboard.writeText(String(text)))
   ipcMain.handle('setup:getState', () => d.setup.state)

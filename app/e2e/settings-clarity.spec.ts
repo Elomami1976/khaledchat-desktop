@@ -5,12 +5,12 @@ import { join } from 'node:path'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
-test('settings explain reply size, unavailable models, and automatic image support', async () => {
+test('settings explain reply size, unavailable models, and optional image support', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-settings-')) } })
   try {
     const page = await app.firstWindow()
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.getByTestId('setup-download').click()
+    await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
     await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 30_000 })
     await page.getByTestId('open-settings').click()
     await page.getByTestId('theme').getByRole('radio', { name: 'Light', exact: true }).click()
@@ -40,19 +40,10 @@ test('settings explain reply size, unavailable models, and automatic image suppo
     }
     await page.getByTestId('other-models').click()
     await expect(blocked).toHaveCount(0)
-    const sendVision = (state: import('../src/shared/types').VisionState) => app.evaluate(({ BrowserWindow }, s) => BrowserWindow.getAllWindows()[0].webContents.send('vision:state', s), state)
-    await sendVision({ phase: 'off' })
-    await expect(page.getByTestId('settings-vision')).toContainText('Not downloaded yet')
-    await sendVision({ phase: 'downloading', progress: .42 })
-    await expect(page.getByRole('progressbar', { name: 'Image support download' })).toHaveAttribute('aria-valuenow', '42')
-    await sendVision({ phase: 'error', message: 'Connection interrupted' })
-    await expect(page.getByTestId('settings-vision')).toContainText('Download interrupted')
-    await page.getByRole('button', { name: 'Try again', exact: true }).click()
-    await sendVision({ phase: 'ready', name: 'Qwen3-VL 4B', sizeGB: 2.9 })
-    await expect(page.getByTestId('settings-vision')).toContainText('Downloaded')
-    await expect(page.getByTestId('settings-vision')).toContainText('Added automatically')
-    await expect(page.getByTestId('settings-vision')).toContainText('2.9 GB')
-    await expect(page.getByTestId('settings-vision').getByTestId('model-use')).toHaveCount(0)
+    // Khaled Chat: image support is an optional component, installed only after a confirmed download
+    await expect(page.getByTestId('settings')).toContainText('Nothing here is downloaded unless you choose it')
+    await expect(page.getByTestId('component-vision')).toContainText('Installed')
+    await expect(page.getByTestId('component-python')).toContainText('Not available on this computer')
     if (process.env.HOB_SHOTS) {
       await page.getByRole('heading', { name: 'Models', exact: true }).scrollIntoViewIfNeeded()
       await page.screenshot({ path: join(process.env.HOB_SHOTS, 'models-light.png'), scale: 'css' })
@@ -78,11 +69,9 @@ test('settings explain reply size, unavailable models, and automatic image suppo
       await page.screenshot({ path: join(process.env.HOB_SHOTS, 'storage.png'), scale: 'css' })
       await page.getByTestId('settings-nav-model').click()
     }
-    const spare = page.getByTestId('settings-model').filter({ has: page.getByTestId('model-delete') }).first()
-    await expect(spare.getByTestId('model-use')).toHaveText('Use model')
-    await expect(spare.getByTestId('model-delete')).toHaveText('Remove download')
-    await spare.getByTestId('model-delete').click()
-    await expect(page.getByTestId('settings-model').filter({ hasText: 'Gemma 4 E4B' }).getByTestId('model-use')).toHaveText('Download & use')
+    // Khaled Chat: only the confirmed model was downloaded (Hob also fetched a starter model, shown here as a spare)
+    await expect(page.getByTestId('model-delete')).toHaveCount(0)
+    await expect(page.getByTestId('settings-model').filter({ hasText: 'Gemma 4 E4B' }).getByTestId('model-use')).toHaveText('Download & use…')
     await expect(page.getByTestId('status')).toHaveText(/^Ready$/)
     await page.setViewportSize({ width: 800, height: 600 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

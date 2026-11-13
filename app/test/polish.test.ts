@@ -49,8 +49,10 @@ it('moves across drives fall back to copy + remove', () => {
   expect(() => readFileSync(join(root, 'a.txt'))).toThrow()
 })
 
-it('web access is on unless the user turned it off', async () => {
+// Khaled Chat: off until the person switches it on
+it('web access is off unless the user turned it on', async () => {
   const { webAccessOn } = await import('../src/main/settings')
-  expect(webAccessOn({})).toBe(true)
+  expect(webAccessOn({})).toBe(false)
   expect(webAccessOn({ webAccess: false })).toBe(false)
+  expect(webAccessOn({ webAccess: true })).toBe(true)
 })

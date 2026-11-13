@@ -5,6 +5,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { pickVision, VISION_MODELS, visionFitsGpu } from '../src/main/vision/catalog'
 import { VisionInstaller } from '../src/main/vision/install'
 import { VisionServer } from '../src/main/vision/server'
+import { DownloadConsent } from '../src/main/consent'
+// Khaled Chat: these tests cover installs the person has confirmed (consent.test.ts covers the rest)
+class ConfirmedConsent extends DownloadConsent { override has() { return true } override assert() {} }
+const yes = new ConfirmedConsent()
 
 const fixture = join(import.meta.dirname, 'fixtures/fake-llama-server.mjs')
 
@@ -31,7 +35,7 @@ describe('VisionInstaller', () => {
     const inst = new VisionInstaller(root, {
       platformKey: 'darwin-arm64', choose: async () => VISION_MODELS['4b'],
       download: { download: async (_u, dir, name) => { mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, name), 'x') }, hashFile: async () => 'h', freeDiskGB: async () => 500 },
-      sha256Override: 'h',
+      sha256Override: 'h', consent: yes,
       fetchFile: async (url, _sha, _gb, dir, _p, name) => { fetched.push(url); mkdirSync(dir, { recursive: true }); const p = join(dir, name ?? 'f'); writeFileSync(p, 'tgz'); return p },
       exec: async (_cmd, args) => { const out = args[args.indexOf('-C') + 1]; mkdirSync(join(out, 'llama-b11433'), { recursive: true }); writeFileSync(join(out, 'llama-b11433', 'llama-server'), '') },
       ...over,

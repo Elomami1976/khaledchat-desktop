@@ -18,7 +18,7 @@ test('a reply that finishes while Hob is in the background sends a notification,
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('setup-download')).toBeVisible({ timeout: 20_000 })
-    await page.getByTestId('setup-download').click()
+    await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
     await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
 
     await page.getByTestId('composer-input').fill('__slow__ what should I cook tonight')

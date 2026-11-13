@@ -14,7 +14,7 @@ test('projects: make one with a folder, chat in it, open its folder, edit it, re
   writeFileSync(join(trip, 'old.txt'), 'keep')
   const app = await electron.launch({ args: [main], env: { ...process.env, HOME: home, USERPROFILE: home, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
 
   // create: the name comes from the first folder; the whole home folder is refused with a reason

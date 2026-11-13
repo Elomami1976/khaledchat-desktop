@@ -1,8 +1,17 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { validateCatalog, type Catalog } from '@hob/picker'
 
-export const CATALOG_URL = 'https://raw.githubusercontent.com/FrigadeHQ/hob/main/catalog/catalog.json'
+/**
+ * Khaled Chat: the model list is the one bundled with the app. Nothing is fetched at start-up (or ever, for now):
+ * the app doesn't call loadCatalog below. A remote list may come back later as an opt-in, signed update.
+ */
+export function loadBundledCatalog(bundled: unknown, licenses: string[]): Catalog {
+  const r = validateCatalog(bundled, licenses)
+  if (!r.ok) throw new Error('Bundled catalog is invalid: ' + r.errors.join('; '))
+  return r.catalog
+}
 
+/** Hob's remote catalog with cache and bundled fallback. Unused by Khaled Chat (no remote URL); kept for its tests */
 export async function loadCatalog(opts: { url: string; cachePath: string; bundled: unknown; licenses: string[]; fetchFn?: typeof fetch }): Promise<Catalog> {
   const fetchFn = opts.fetchFn ?? fetch
   try {

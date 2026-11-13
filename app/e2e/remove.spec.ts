@@ -9,7 +9,7 @@ test('Remove Hob deletes its models and data, then quits', async () => {
   const data = mkdtempSync(join(tmpdir(), 'hob-e2e-'))
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: data } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   expect(readdirSync(join(data, 'models')).length).toBeGreaterThan(0)
 
@@ -37,7 +37,7 @@ test('on Windows and Linux, downloads can go to another drive during setup, and 
   await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [dir] })) as typeof dialog.showOpenDialog }, drive)
   await page.getByTestId('setup-downloads-change').click()
   await expect(page.getByTestId('setup-downloads')).toContainText(join(drive, 'Hob'))
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   expect(readdirSync(join(drive, 'Hob', 'models')).some((f) => f.endsWith('.gguf'))).toBe(true)
   expect(readdirSync(join(data, 'models'))).toEqual([])

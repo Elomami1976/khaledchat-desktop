@@ -22,8 +22,8 @@ export function updateSettings(path: string, patch: Partial<Settings>): Settings
   return next
 }
 
-/** Web search is on unless the user switched it off. */
-export const webAccessOn = (s: Settings) => s.webAccess !== false
+/** Khaled Chat: web access is off until the person switches it on (Hob had it on by default). */
+export const webAccessOn = (s: Settings) => s.webAccess === true
 
 /** Normal unless the user picked another */
 export const effortOf = (s: Settings): Effort => (isEffort(s.effort) ? s.effort : DEFAULT_EFFORT)

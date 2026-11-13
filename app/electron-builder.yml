@@ -4,12 +4,9 @@ electronVersion: 44.7.2
 copyright: Copyright © 2026 Frigade
 # GitHub Releases: every v* tag builds Mac, Windows and Linux (.github/workflows/release.yml).
 # Fixed file names, so releases/latest/download/<name> always points at the newest one.
-# Installed copies update from the same release (latest*.yml, src/main/updates.ts).
-publish:
-  provider: github
-  owner: FrigadeHQ
-  repo: hob
-  releaseType: release
+# Khaled Chat: no publish target and no auto-update feed (src/main/updates.ts). Hob published to and updated from
+# FrigadeHQ/hob's releases; a Khaled Chat release target is set up in a later phase.
+publish: null
 # the Windows install folder is named after this (the package name, @hob/app, would make it "@hobapp")
 extraMetadata:
   name: hob

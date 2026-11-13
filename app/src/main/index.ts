@@ -8,7 +8,9 @@ import { makePaths } from './paths'
 import { UtilityEngine } from './engine'
 import { fakeAccounts, FakeEngine, fakeDownloadDeps } from './fake'
 import { realDeps } from './downloader'
-import { CATALOG_URL, loadCatalog } from './catalog'
+import { loadBundledCatalog } from './catalog'
+import { Components } from './components'
+import { installNetLog } from './netlog'
 import { readSysInfo, toHardware } from './hardware'
 import type { Hardware } from '@hob/picker'
 import { SetupController } from './setup'
@@ -29,7 +31,6 @@ import { pickVision, VISION_MODELS, visionFitsGpu, visionGB } from './vision/cat
 import type { VisionState } from '../shared/types'
 import os from 'node:os'
 import { loadSettings, localeOf, updateSettings, webAccessOn } from './settings'
-import { startUpdates, updatesOn } from './updates'
 import { setLanguage } from '../shared/i18n'
 import { systemLocale } from './locale'
 import { PluginRegistry } from './plugins/registry'
@@ -39,6 +40,8 @@ import { isInside } from './workspace'
 import { SearxngServer, type SearchResult } from './search/searxng'
 import { SpeechModel } from './speech'
 
+// Khaled Chat: KHALED_NET_LOG=<file> records every outgoing request (checking what the app contacts)
+const netLogSession = installNetLog()
 const FAKE = process.env.HOB_FAKE === '1'
 // Windows shows notifications only for an app with this id (the installer's shortcut carries the same one)
 if (process.platform === 'win32') app.setAppUserModelId('com.frigade.hob')
@@ -134,13 +137,12 @@ app.on('open-file', (e, path) => {
 })
 
 app.whenReady().then(() => {
+  netLogSession?.(session.defaultSession)
   const paths = makePaths(app.getPath('userData'))
   // the theme picked in Settings; the system's when none
   nativeTheme.themeSource = loadSettings(paths.settings).theme ?? 'system'
   setLanguage(localeOf(loadSettings(paths.settings), systemLocale()))
-  if (updatesOn({ packaged: app.isPackaged, fake: FAKE, profile: !!process.env.HOB_USER_DATA, platform: process.platform, appImage: !!process.env.APPIMAGE })) {
-    startUpdates().catch((err) => console.warn("couldn't start looking for new versions", err))
-  }
+  // Khaled Chat: no automatic update check, download or install (updates.ts)
   const engine = FAKE ? new FakeEngine() : new UtilityEngine(join(__dirname, 'engine.js'))
   /** the computer, as setup found it (the vision model's room is worked out from it) */
   let hardware: Hardware | undefined
@@ -157,7 +159,8 @@ app.whenReady().then(() => {
       // a second try runs without the graphics card if the first one crashed the engine
       : async () => (hardware = toHardware(await engine.probe().catch(() => engine.probe()), await readSysInfo(paths.models))),
     // HOB_LOCAL_CATALOG=1: only the catalog in this build (to try models before they're published)
-    getCatalog: () => loadCatalog({ url: CATALOG_URL, cachePath: paths.catalogCache, bundled: bundledCatalog, licenses, fetchFn: FAKE || process.env.HOB_LOCAL_CATALOG ? (async () => { throw new Error('offline') }) as unknown as typeof fetch : undefined }),
+    // Khaled Chat: the model list bundled with the app; nothing is fetched at start-up
+    getCatalog: async () => loadBundledCatalog(bundledCatalog, licenses),
   })
   const store = new Store(paths.db)
   pruneUndo(paths.undo, { olderThanDays: 30 })
@@ -246,15 +249,8 @@ app.whenReady().then(() => {
       : script.includes('OutgoingMessage') ? 'ok'
       : JSON.stringify({ subject: 'Your flight to Lisbon', from: 'TAP Air', date: '2026-10-20T08:00:00Z', to: ['me@example.com'], content: `Booking ${args[0]}: departs 24 Oct 07:15.` })),
   })
-  setup.onState((s) => { if ((s.phase === 'downloading' && s.chatReady) || s.phase === 'ready') vision.start() })
-  // dictation's model too, as soon as chat works, so the mic is ready the first time it's clicked
-  // (once: setup reports download progress many times a second; again after a failed try, e.g. offline)
-  let fetchingSpeech = false
-  if (!FAKE) setup.onState((s) => {
-    if (fetchingSpeech || !((s.phase === 'downloading' && s.chatReady) || s.phase === 'ready')) return
-    fetchingSpeech = true
-    speech.ensure().catch((err) => { fetchingSpeech = false; console.warn("couldn't download the dictation model yet", err) })
-  })
+  // Khaled Chat: image support and dictation are no longer downloaded in the background once chat works. They're
+  // optional components, installed only after the person confirms them (Settings → Optional components)
   app.on('before-quit', () => vision.stop())
   // a Google or Microsoft account for calendar and email; on a Mac, the Calendar and Mail apps otherwise
   const accounts = FAKE ? fakeAccounts() : new Accounts({
@@ -285,17 +281,23 @@ app.whenReady().then(() => {
     if (plan.app) await shell.trashItem(plan.app).catch((err) => console.warn('could not move Hob to the Trash', err))
     app.quit()
   }
-  const ipc = registerIpc({ win: () => win, setup, store, python, paths, filesDir, allowed, search, speech: FAKE ? undefined : speech, plugins, vision, accounts, notices, removeHob, fake: FAKE })
-  // install code tools quietly once a model is ready, so they're there before the first file task
+  const components = new Components({
+    ...(python ? {
+      python: { supported: python.supported, isReady: () => python.isReady(), ensure: () => python.ensure(), cancel: () => python.cancel(), root: python.dir, platformKey: `${process.platform}-${process.arch}` },
+      search: { supported: python.supported, isReady: () => python.searchReady, ensure: () => python.ensureSearxng(), cancel: () => python.cancel() },
+    } : {}),
+    ...(!FAKE ? { speech: { supported: true, isReady: () => speech.isReady(), ensure: () => speech.ensure(), cancel: () => speech.cancel(), get root() { return paths.speech } } } : {}),
+    ...(vision.installer ? { vision: { ...vision.installer, get root() { return paths.vision } } } : {}),
+    onChange: (list) => win?.webContents.send('components:changed', list),
+  })
+  const ipc = registerIpc({ win: () => win, setup, store, python, paths, filesDir, allowed, search, speech: FAKE ? undefined : speech, plugins, vision, accounts, notices, removeHob, fake: FAKE, components })
+  // Khaled Chat: code tools and web search are not installed once a model is ready (Hob did that quietly); they're
+  // optional components. Plugins still start their own local tools.
   let codeToolsStarted = false
   setup.onState((s) => {
     if (codeToolsStarted || s.phase !== 'ready') return
     codeToolsStarted = true
     plugins.warmUp()
-    if (!python) return
-    void python.ensure()
-      .then(() => python.ensureSearxng().catch((err) => console.warn('web search install failed; will retry on first search', err)))
-      .catch((err) => console.warn('code tools install failed; will retry on first use', err))
   })
   // dev runs use the plain Electron bundle; show Hob's icon in the Dock anyway
   if (process.platform === 'darwin' && !app.isPackaged && !BACKGROUND) app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
@@ -332,11 +334,16 @@ function realVision(root: () => string, room: () => Promise<{ totalRamGB: number
     // fully on the graphics chip only if it fits next to the main model; otherwise the main model would run out
     useGpu: async () => !REAL_TOOLS && visionFitsGpu({ ...await room(), visionGB: visionGB(installer.model) }),
   })
-  const start = () => { if (installer.supported) void installer.ensure().catch((err) => console.warn('image support download failed; will retry', err)) }
+  // Khaled Chat: retry only works under a fresh OK for the download (the installer checks), never on its own
+  const start = () => { if (installer.supported) void installer.ensure().catch((err) => console.warn('image support download did not start', err.message)) }
   return {
     state: () => installer.state, onState: (cb: (s: VisionState) => void) => { listeners.add(cb) },
     ask: (image: string, q: string, signal?: AbortSignal) => server.ask(image, q, signal),
     start, retry: start, stop: () => server.stop(),
+    installer: {
+      supported: installer.supported, isReady: () => installer.isReady(), ensure: () => installer.ensure(),
+      cancel: () => installer.cancel(), plan: () => installer.plan(),
+    },
   }
 }
 
@@ -347,5 +354,7 @@ function fakeVision() {
     onState: () => {},
     ask: async (_image: string, q: string) => `A receipt from Joe's Cafe. Total: $23.40. (Asked: ${q})`,
     start: () => {}, retry: () => {}, stop: () => {},
+    // test mode: shows as an installed optional component; never downloads
+    installer: { supported: true, isReady: () => true, ensure: async () => {}, cancel: () => false, plan: async () => ({ model: { name: 'Qwen3-VL 4B' }, files: [] }) },
   }
 }

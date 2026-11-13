@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { ApprovalRequest, LiveSummary, Step, StoredMessage } from '../shared/agent'
-import type { AccountsState, MacAccess, SetupState, HobApi, VisionState } from '../shared/types'
+import type { AccountsState, ComponentState, MacAccess, SetupState, HobApi, VisionState } from '../shared/types'
 import type { PluginResult } from '../shared/plugins'
 
 const invoke = (channel: string) => (...args: unknown[]) => ipcRenderer.invoke(channel, ...args)
@@ -14,6 +14,12 @@ const api: HobApi = {
   platform: process.platform,
   fake: process.env.HOB_FAKE === '1',
   copy: invoke('copy'),
+  // Khaled Chat: download confirmations and optional components
+  downloads: { info: invoke('downloads:info'), approve: invoke('downloads:approve') },
+  components: {
+    list: invoke('components:list'), install: invoke('components:install'), cancel: invoke('components:cancel'),
+    onChanged: (cb) => listen<[ComponentState[]]>('components:changed', cb),
+  },
   pathsForFiles: (files) => files.map((f) => webUtils.getPathForFile(f)).filter(Boolean),
   fileUrl: (p) => `hob-file://f/${encodeURIComponent(p)}`,
   setup: {

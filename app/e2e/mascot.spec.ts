@@ -8,7 +8,7 @@ test('Hob follows the cursor in the greeting and settles in the sidebar', async 
   try {
     const page = await app.firstWindow()
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'no-preference' })
-    await page.getByTestId('setup-download').click()
+    await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
     await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
     await expect(page.getByRole('heading', { name: 'What are we working on?' })).toBeVisible()
     const mascot = page.locator('[data-testid=mascot]:visible')
@@ -164,7 +164,7 @@ test('a happier Hob responds to clicks and keys, then forgives a flurry of click
     // No automatic animation under reduced motion, including after an interaction.
     await expect(mascot.getByTestId('mascot-eyes').locator('rect').first()).toHaveAttribute('x', '15')
     await page.clock.resume()
-    await page.getByTestId('setup-download').click()
+    await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
     await expect(page.getByRole('heading', { name: 'What are we working on?' })).toBeVisible()
     await hello.click()
     await expect(page.locator('.chat-greeting').getByTestId('mascot')).toHaveAttribute('data-expression', 'content')
@@ -221,7 +221,7 @@ test('Hob in the corner shows what "Ready" shows, and laughs when clicked', asyn
   } })
   try {
     const page = await app.firstWindow()
-    await page.getByTestId('setup-download').click()
+    await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
     await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
     // the corner Hob shows once a chat is open (the new-chat screen has the big one)
     await page.getByTestId('composer-input').fill('hi')

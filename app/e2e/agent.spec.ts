@@ -14,7 +14,7 @@ async function launch(userData = mkdtempSync(join(tmpdir(), 'hob-e2e-')), home =
 /** first launch shows onboarding; later launches go straight to chat */
 async function ready(page: Page) {
   await expect(page.getByTestId('setup-download').or(page.getByTestId('composer-input'))).toBeVisible({ timeout: 20_000 })
-  if (await page.getByTestId('setup-download').isVisible()) await page.getByTestId('setup-download').click()
+  if (await page.getByTestId('setup-download').isVisible()) { await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click() }
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
 }
 /** finished replies collapse their steps into "Worked for …"; open the latest one */
@@ -82,22 +82,22 @@ test('changes in a project folder ask first and can be undone', async () => {
   await app.close()
 })
 
-test('settings: web access is on by default, turning it off persists, current model is shown', async () => {
+test('settings: web access is off by default (Khaled Chat), turning it on persists, current model is shown', async () => {
   const { app, page, userData } = await launch()
   await ready(page)
   await page.getByTestId('open-settings').click()
   await page.getByTestId('settings-nav-model').click()
   await expect(page.getByTestId('settings-model').filter({ hasText: 'In use' })).toContainText('Gemma 4')
   await page.getByTestId('settings-nav-privacy').click()
-  await expect(page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'true') // on by default
+  await expect(page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'false') // Khaled Chat: off by default
   await page.getByTestId('web-toggle').click()
-  await expect(page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'false')
+  await expect(page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'true')
   await app.close()
   const again = await launch(userData)
   await ready(again.page)
   await again.page.getByTestId('open-settings').click()
   await again.page.getByTestId('settings-nav-privacy').click()
-  await expect(again.page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'false')
+  await expect(again.page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'true')
   await again.app.close()
 })
 
@@ -134,9 +134,10 @@ test('opening Settings mid-task does not stop it', async () => {
   await app.close()
 })
 
-test('web search is on by default and runs without asking', async () => {
+test('web search runs without asking once Web access is on', async () => {
   const { app, page } = await launch()
   await ready(page)
+  await page.evaluate(() => (window as unknown as { hob: { settings: { set(p: object): Promise<unknown> } } }).hob.settings.set({ webAccess: true })) // Khaled Chat: off by default
   await page.getByTestId('composer-input').fill('__tools__ [["web_search",{"query":"lisbon weather"}]]')
   await page.getByTestId('composer-send').click()
   await expect(page.getByTestId('message-assistant').last()).toContainText('Lisbon')
@@ -227,7 +228,7 @@ test('Hob looks at an attached photo and answers from what it sees', async () =>
   // Settings says image support is ready
   await page.getByTestId('open-settings').click()
   await page.getByTestId('settings-nav-model').click()
-  await expect(page.getByTestId('settings-vision')).toContainText('Downloaded')
+  await expect(page.getByTestId('component-vision')).toContainText('Installed')
   await app.close()
 })
 

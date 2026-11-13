@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { createReadStream, existsSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { statfs } from 'node:fs/promises'
 import { join } from 'node:path'
+import { consent as appConsent, type DownloadConsent } from './consent'
 
 export class DiskSpaceError extends Error {
   name = 'DiskSpaceError'
@@ -10,7 +11,8 @@ export class DiskSpaceError extends Error {
 export class ChecksumError extends Error { name = 'ChecksumError' }
 
 export type Progress = { fraction: number; etaSec: number }
-export type EnsureOpts = { url: string; sha256: string; sizeGB: number; dir: string; onProgress?: (p: Progress) => void; signal?: AbortSignal }
+/** consentKey: the download the person OK'd (consent.ts); a file that isn't here yet is never fetched without it */
+export type EnsureOpts = { url: string; sha256: string; sizeGB: number; dir: string; consentKey: string; consent?: DownloadConsent; onProgress?: (p: Progress) => void; signal?: AbortSignal }
 export type DownloadDeps = {
   download(url: string, dir: string, fileName: string, onProgress: (p: Progress) => void, signal?: AbortSignal): Promise<void>
   hashFile(path: string): Promise<string>
@@ -99,6 +101,9 @@ export async function ensureModelFile(opts: EnsureOpts, deps: DownloadDeps = rea
   const fileName = fileNameFor(opts.url)
   const path = join(opts.dir, fileName)
   if (isVerified(opts.dir, opts.url) && readFileSync(marker(opts.dir, opts.url), 'utf8') === opts.sha256) return path
+
+  // Khaled Chat: checked here too, right before the network, whoever the caller is
+  ;(opts.consent ?? appConsent).assert(opts.consentKey)
 
   const free = await deps.freeDiskGB(opts.dir)
   const need = opts.sizeGB - partialDownloadGB(opts.dir, opts.url) + DISK_HEADROOM_GB - free

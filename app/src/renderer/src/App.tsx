@@ -6,6 +6,7 @@ import { hob } from './api'
 import { Onboarding } from './screens/Onboarding'
 import { ChatView } from './screens/Chat'
 import { ConfirmHost } from './components/Confirm'
+import { DownloadConfirmHost } from './components/DownloadConfirm'
 import { SettingsOverlay, type Section } from './components/SettingsOverlay'
 import { PreviewHost } from './components/Preview'
 import type { PluginResult } from '../../shared/plugins'
@@ -158,6 +159,7 @@ export function App() {
   return (
     <div className="relative h-full flex">
       <ConfirmHost />
+      <DownloadConfirmHost />
       {settingsAt && <SettingsOverlay section={settingsAt} onSection={setSettingsAt} onClose={() => setSettingsAt(null)} opened={opened} onTryPrompt={tryPrompt}
         onAllChatsDeleted={() => {
           // nothing to go back to

@@ -1,6 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { RuntimeDeps } from './python/runtime'
+import { componentKey, consent as appConsent, type DownloadConsent } from './consent'
+
+export const SPEECH_TOTAL_BYTES = () => WHISPER.files.reduce((s, f) => s + f.bytes, 0)
 
 /** Whisper base (multilingual), pinned to one Hugging Face revision; every file checksummed. */
 export const WHISPER = {
@@ -25,7 +28,16 @@ export class SpeechModel {
   /** everyone waiting for the download: it may have started in the background before dictation was clicked */
   private watchers = new Set<(fraction: number) => void>()
   /** root: a function when the folder can still change (a drive picked during setup) */
-  constructor(private rootOf: string | (() => string), private deps: Pick<RuntimeDeps, 'fetchFile'>) {}
+  /** Khaled Chat: stops the download the person started */
+  private stopping: AbortController | undefined
+  constructor(private rootOf: string | (() => string), private deps: Pick<RuntimeDeps, 'fetchFile'>, private consent: DownloadConsent = appConsent) {}
+
+  get isInstalling() { return !!this.installing }
+  cancel(): boolean {
+    if (!this.installing || !this.stopping) return false
+    this.stopping.abort()
+    return true
+  }
   private get root() { return typeof this.rootOf === 'string' ? this.rootOf : this.rootOf() }
 
   /** folder transformers.js loads `${id}/${file}` from */
@@ -37,19 +49,24 @@ export class SpeechModel {
 
   ensure(onProgress: (fraction: number) => void = () => {}): Promise<void> {
     if (this.isReady()) return Promise.resolve()
+    // Khaled Chat: only under the person's OK, never in the background
+    if (!this.installing) {
+      try { this.consent.assert(componentKey('speech'), "Dictation isn't installed. Install it in Settings → Optional components.") } catch (err) { return Promise.reject(err) }
+    }
     this.watchers.add(onProgress)
-    this.installing ??= this.install().finally(() => { this.installing = undefined; this.watchers.clear() })
+    this.installing ??= this.consent.use(componentKey('speech'), () => this.install((this.stopping = new AbortController()).signal))
+      .finally(() => { this.installing = undefined; this.watchers.clear() })
     return this.installing
   }
 
-  private async install() {
+  private async install(signal?: AbortSignal) {
     const onProgress = (f: number) => { for (const w of this.watchers) w(f) }
     let done = 0
     for (const f of WHISPER.files) {
       const dest = join(this.root, WHISPER.id, f.path)
       if (!existsSync(dest)) {
         const url = `https://huggingface.co/${WHISPER.id}/resolve/${WHISPER.revision}/${f.path}`
-        await this.deps.fetchFile(url, f.sha256, f.bytes / 1e9, dirname(dest), (p) => onProgress((done + p * f.bytes) / TOTAL), f.path.split('/').pop())
+        await this.deps.fetchFile(url, f.sha256, f.bytes / 1e9, dirname(dest), (p) => onProgress((done + p * f.bytes) / TOTAL), f.path.split('/').pop(), signal)
       }
       done += f.bytes
       onProgress(done / TOTAL)

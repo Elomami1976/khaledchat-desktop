@@ -7,7 +7,7 @@ test('formulas in a reply are drawn as math; prices stay text', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   try {
     const page = await app.firstWindow()
-    await page.getByTestId('setup-download').click()
+    await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
     await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
     const reply = 'The roots of \\(x^2 - 5x + 6 = 0\\) are:\n\\[\nx = \\frac{5 \\pm \\sqrt{1}}{2}\n\\]\nSo $x$ is 2 or 3. It cost $5 and $10.'
     await page.getByTestId('composer-input').fill(`__tools__ []\n---\n${reply}`)

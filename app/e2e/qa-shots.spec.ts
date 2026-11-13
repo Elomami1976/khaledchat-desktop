@@ -18,7 +18,7 @@ test('screens', async () => {
   await page.getByTestId('setup-other-options').click()
   await shot('02-options')
   await page.keyboard.press('Escape')
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await page.waitForTimeout(2000)
   await shot('03-downloading')
   await page.getByTestId('composer-input').waitFor({ timeout: 20_000 })

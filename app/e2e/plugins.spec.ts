@@ -8,7 +8,7 @@ const main = join(import.meta.dirname, '../out/main/index.js')
 async function launch() {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   return { app, page }
 }

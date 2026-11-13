@@ -9,9 +9,16 @@ import { FakeEngine, fakeDownloadDeps } from '../src/main/fake'
 import { fileNameFor } from '../src/main/downloader'
 import { saveSettings } from '../src/main/settings'
 import type { SetupState } from '../src/shared/types'
+import { DownloadConsent } from '../src/main/consent'
 
 const catalog = bundled as Catalog
 const m1max = { os: 'darwin' as const, arch: 'arm64', cpuModel: 'Apple M1 Max', totalRamGB: 32, freeDiskGB: 500, gpu: { kind: 'unified' as const, name: 'Apple M1 Max', vramGB: 24 } }
+
+/**
+ * Khaled Chat: these tests are about what happens once the person has confirmed a download, so their consent store
+ * says yes to every model. consent.test.ts covers downloads without an OK (refused, nothing fetched).
+ */
+class ConfirmedConsent extends DownloadConsent { override has() { return true } override assert() {} }
 
 function setup(over: Partial<SetupDeps> = {}) {
   const root = mkdtempSync(join(tmpdir(), 'hob-setup-'))
@@ -19,7 +26,7 @@ function setup(over: Partial<SetupDeps> = {}) {
   const deps: SetupDeps = {
     engine, modelsDir: root, settingsPath: join(root, 'settings.json'),
     getHardware: async () => m1max, getCatalog: async () => catalog,
-    download: fakeDownloadDeps(), sha256Override: 'FAKE',
+    download: fakeDownloadDeps(), sha256Override: 'FAKE', consent: new ConfirmedConsent(),
   }
   // keeps getters (a models folder that moves) as getters
   Object.defineProperties(deps, Object.getOwnPropertyDescriptors(over))
@@ -29,10 +36,17 @@ function setup(over: Partial<SetupDeps> = {}) {
   return { c, engine, deps, states, root }
 }
 
+/** a model already downloaded and verified (fake hash), as if from an earlier, confirmed download */
+function have(root: string, id: string) {
+  const url = catalog.models.find((m) => m.id === id)!.builds[0].url
+  writeFileSync(join(root, fileNameFor(url)), 'x'); writeFileSync(join(root, fileNameFor(url) + '.ok'), 'FAKE')
+}
+
 describe('SetupController', () => {
   it('keeps the small starter model loaded next to the big one for side jobs, only with memory to spare', async () => {
     const big = setup({ getHardware: async () => ({ ...m1max, totalRamGB: 64, gpu: { kind: 'unified' as const, name: 'Apple M1 Max', vramGB: 48 } }) })
-    await big.c.start(); await big.c.confirm()
+    // Khaled Chat: the starter is never fetched alongside; here it's already downloaded
+    await big.c.start(); have(big.root, 'gemma-4-e4b'); await big.c.confirm()
     const { vi } = await import('vitest')
     await vi.waitFor(() => expect(big.engine.side).toMatch(/E4B/i))
     // 32 GB: a second model next to the big one slowed the first reply (~1 s → ~5 s on gpt-oss-20b, M1 Max)
@@ -70,11 +84,11 @@ describe('SetupController', () => {
   })
 
   it('deletes a downloaded model that is not in use, never the active one', async () => {
-    const { c } = setup()
-    await c.start(); await c.confirm()
+    const { c, root } = setup()
+    await c.start(); have(root, 'gemma-4-e4b'); await c.confirm()
     const active = c.listModels().find((r) => r.active)!
     expect(c.deleteModel(active.id)).toBe(false)
-    const spare = c.listModels().find((r) => r.downloaded && !r.active)! // the starter
+    const spare = c.listModels().find((r) => r.downloaded && !r.active)! // downloaded earlier
     expect(c.deleteModel(spare.id)).toBe(true)
     expect(c.listModels().find((r) => r.id === spare.id)?.downloaded).toBe(false)
   })
@@ -120,13 +134,15 @@ describe('SetupController', () => {
     expect(computerName({ ...m1max, os: 'win32', cpuModel: 'Intel i7', totalRamGB: 31.9, gpu: { kind: 'discrete', name: 'NVIDIA GeForce RTX 4070', vramGB: 12 } })).toBe('NVIDIA GeForce RTX 4070 (12 GB) · 32 GB memory')
     expect(computerName({ ...m1max, cpuModel: 'Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz', gpu: { kind: 'none', name: '', vramGB: 0 }, totalRamGB: 16 })).toBe('Intel Core i5-8250U · 16 GB memory')
   })
-  it('the first download says it is the small starter model', async () => {
-    const { c, states } = setup()
+  // Khaled Chat: Hob fetched a small starter model first, unasked; only the confirmed model is downloaded now
+  it('the first download is only the model that was confirmed, no starter model first', async () => {
+    let fetched: string[] = []
+    const dl = fakeDownloadDeps()
+    const { c, states } = setup({ download: { ...dl, download: async (u, d, f, p, s) => { fetched.push(f); return dl.download(u, d, f, p, s) } } })
     await c.start(); await c.confirm()
-    const first = states.find((s) => s.phase === 'downloading') as Extract<SetupState, { phase: 'downloading' }>
-    expect(first.starter).toMatchObject({ id: 'gemma-4-e4b' })
-    expect(states.some((s) => s.phase === 'downloading' && s.chatReady && !s.starter)).toBe(true)
-    expect(states).toContainEqual(expect.objectContaining({ phase: 'downloading', chatReady: true, initialUpgrade: true }))
+    expect(states.some((s) => s.phase === 'downloading' && !!s.starter)).toBe(false)
+    expect(fetched).toEqual([fileNameFor(catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')!.builds[0].url)])
+    fetched = []
   })
   it('choosing a model manually after choosing the starter is not the initial upgrade', async () => {
     const { c, states } = setup()
@@ -137,14 +153,18 @@ describe('SetupController', () => {
     expect(downloading.length).toBeGreaterThan(0)
     expect(downloading).not.toEqual(expect.arrayContaining([expect.objectContaining({ initialUpgrade: true })]))
   })
-  it.each([undefined, 'gemma-4-e4b'])('resumed downloads retain whether a model was already chosen (%s)', async (activeModelId) => {
-    const { deps } = setup()
+  // Khaled Chat: a saved, interrupted download never resumes on its own after a restart
+  it.each([undefined, 'gemma-4-e4b'])('a saved, interrupted download does not resume on relaunch (active model: %s)', async (activeModelId) => {
+    const { deps, root } = setup()
+    if (activeModelId) have(root, activeModelId)
     saveSettings(deps.settingsPath, { activeModelId, pendingModelId: 'gemma-4-26b-a4b' })
     const c = new SetupController(deps)
     const states: SetupState[] = []
     c.onState((s) => states.push(s))
     await c.start()
-    expect(states).toContainEqual(expect.objectContaining({ phase: 'downloading', chatReady: true, initialUpgrade: !activeModelId }))
+    expect(states.some((s) => s.phase === 'downloading')).toBe(false)
+    if (activeModelId) expect(c.state).toMatchObject({ phase: 'ready', model: { id: activeModelId } })
+    else expect(c.state).toMatchObject({ phase: 'choose', resume: { id: 'gemma-4-26b-a4b' } })
   })
   it('choose lists the catalog models: runnable ones selectable, others greyed with a reason', async () => {
     const { c } = setup()
@@ -164,10 +184,10 @@ describe('SetupController', () => {
     await c.start(); await c.confirm('gpt-oss-120b')
     expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-26b-a4b' } })
   })
-  it('confirm → starter first (chat ready), then main model → ready', async () => {
+  it('confirm → the chosen model downloads, then → ready (no starter first)', async () => {
     const { c, engine, states } = setup()
     await c.start(); await c.confirm()
-    expect(states.some((s) => s.phase === 'downloading' && s.chatReady)).toBe(true)
+    expect(states.some((s) => s.phase === 'downloading' && !s.chatReady)).toBe(true)
     expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-26b-a4b' } })
     expect(engine.loaded).toContain('gemma-4-26B_q4_0')
   })
@@ -183,23 +203,21 @@ describe('SetupController', () => {
     await c.start(); await c.confirm()
     expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-26b-a4b' } })
   })
-  it('quit mid-download → relaunch resumes it (no welcome screen), chatting on the starter meanwhile', async () => {
+  it('quit mid-download → relaunch keeps chatting on the model in use; the download waits for a new OK', async () => {
     const { deps, root } = setup()
-    const starterUrl = catalog.models.find((m) => m.id === 'gemma-4-e4b')!.builds[0].url
-    writeFileSync(join(root, fileNameFor(starterUrl)), 'x'); writeFileSync(join(root, fileNameFor(starterUrl) + '.ok'), 'FAKE')
+    have(root, 'gemma-4-e4b')
     saveSettings(deps.settingsPath, { activeModelId: 'gemma-4-e4b', pendingModelId: 'gemma-4-26b-a4b' })
     const c = new SetupController(deps)
     const states: SetupState[] = []
     c.onState((s) => states.push(s))
     await c.start()
-    expect(states.some((s) => s.phase === 'choose')).toBe(false)
-    expect(states.some((s) => s.phase === 'downloading' && s.chatReady)).toBe(true)
-    expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-26b-a4b' } })
+    expect(states.some((s) => s.phase === 'downloading')).toBe(false)
+    expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-e4b' } })
   })
-  it('first run saves the pending download so a relaunch can resume it', async () => {
+  it('first run remembers the download in progress, so a relaunch can offer to resume it', async () => {
     const { c, deps } = setup()
     let seen: unknown
-    c.onState((s) => { if (s.phase === 'downloading' && s.chatReady && !seen) seen = JSON.parse(readFileSync(deps.settingsPath, 'utf8')) })
+    c.onState((s) => { if (s.phase === 'downloading' && !seen) seen = JSON.parse(readFileSync(deps.settingsPath, 'utf8')) })
     await c.start(); await c.confirm()
     expect(seen).toMatchObject({ pendingModelId: 'gemma-4-26b-a4b' })
     expect(JSON.parse(readFileSync(deps.settingsPath, 'utf8')).pendingModelId).toBeUndefined()
@@ -233,17 +251,26 @@ describe('SetupController', () => {
     expect(c.state.phase).toBe('error')
     expect((c.state as { message: string }).message).toMatch(/Free up \d+ GB/)
   })
-  it('OOM on load → falls back to next smaller model with a note', async () => {
-    const { c, engine } = setup()
+  it('OOM on load → falls back to a smaller model already downloaded, with a note', async () => {
+    const { c, engine, root } = setup()
+    engine.failLoadFor.add('gemma-4-26B_q4_0')
+    await c.start(); have(root, 'gemma-4-e4b'); await c.confirm()
+    expect(c.state).toMatchObject({ phase: 'ready', note: 'Ready · lighter model', model: { id: 'gemma-4-e4b' } })
+  })
+  // Khaled Chat: Hob downloaded a lighter model unasked here
+  it('OOM on load with no smaller model downloaded → an error, and no other model is downloaded', async () => {
+    const fetched: string[] = []
+    const dl = fakeDownloadDeps()
+    const { c, engine } = setup({ download: { ...dl, download: async (u, d, f, p, s) => { fetched.push(f); return dl.download(u, d, f, p, s) } } })
     engine.failLoadFor.add('gemma-4-26B_q4_0')
     await c.start(); await c.confirm()
-    expect(c.state).toMatchObject({ phase: 'ready', note: 'Ready · lighter model' })
-    expect((c.state as { model: { id: string } }).model.id).not.toBe('gemma-4-26b-a4b')
+    expect(c.state.phase).toBe('error')
+    expect(fetched).toEqual([fileNameFor(catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')!.builds[0].url)])
   })
   it('the main model fails to load for another reason (a graphics driver) → chat on a model already downloaded, nothing new downloaded', async () => {
-    const { c, engine, states } = setup()
+    const { c, engine, states, root } = setup()
     engine.brokenLoadFor.add('gemma-4-26B_q4_0')
-    await c.start(); await c.confirm()
+    await c.start(); have(root, 'gemma-4-e4b'); await c.confirm()
     expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-e4b' }, note: 'Ready · lighter model' })
     expect(states.some((s) => s.phase === 'downloading' && s.note === 'Switching to a lighter model…')).toBe(false)
   })
@@ -268,10 +295,10 @@ describe('SetupController review fixes', () => {
     expect(c.state).toMatchObject({ phase: 'error', message: expect.stringMatching(/Free up \d+ GB/) })
     expect(downloads).toBe(0)
   })
-  it('I1: counts starter + main model against free disk', async () => {
-    // 14.44 + 5.15 + 10 = 29.59 needed; 28 free → must refuse up front
+  it('I1: counts the model against free disk (no starter any more)', async () => {
+    // 14.44 + 10 = 24.44 needed; 23 free → must refuse up front
     let downloads = 0
-    const dl = fakeDownloadDeps({ freeDiskGB: 28 })
+    const dl = fakeDownloadDeps({ freeDiskGB: 23 })
     const { c } = setup({ download: { ...dl, download: async (...a) => { downloads++; return dl.download(...a) } } })
     await c.start(); await c.confirm()
     expect(c.state.phase).toBe('error')
@@ -287,18 +314,12 @@ describe('SetupController review fixes', () => {
     expect(engine.loaded).toBe(loaded)
     expect(c.state).toMatchObject({ phase: 'ready' })
   })
-  it('I4: lighter-model fallback that needs a download shows progress and keeps chat alive on the starter', async () => {
+  // Khaled Chat: a lighter model that would need a download is never fetched as a fallback
+  it('I4: lighter-model fallback never starts a download of its own', async () => {
     const { c, engine, states } = setup()
     engine.failLoadFor.add('gemma-4-26B_q4_0')
-    const loadedDuringFallbackDownload: (string | undefined)[] = []
-    const off = c.onState((s) => { if (s.phase === 'downloading' && s.note === 'Switching to a lighter model…') loadedDuringFallbackDownload.push(engine.loaded) })
     await c.start(); await c.confirm()
-    off()
-    const fallback = states.filter((s) => s.phase === 'downloading' && s.note === 'Switching to a lighter model…')
-    expect(fallback.some((s) => s.phase === 'downloading' && s.progress > 0)).toBe(true)
-    expect(fallback.every((s) => s.phase === 'downloading' && s.chatReady)).toBe(true)
-    expect(loadedDuringFallbackDownload.every((p) => p?.includes('gemma-4-E4B'))).toBe(true)
-    expect(c.state).toMatchObject({ phase: 'ready', note: 'Ready · lighter model' })
+    expect(states.some((s) => s.phase === 'downloading' && s.note === 'Switching to a lighter model…')).toBe(false)
   })
   it('I5: a saved choice other than the recommended one is reused on relaunch', async () => {
     const m1 = { ...m1max, cpuModel: 'Apple M1', totalRamGB: 16, gpu: { kind: 'unified' as const, name: 'Apple M1', vramGB: 12 } }
@@ -325,16 +346,19 @@ describe('SetupController review fixes', () => {
   it('I9: background download failure while chatting keeps the user in chat with a retry', async () => {
     const dl = fakeDownloadDeps()
     let fail = true
-    const { c, states } = setup({
+    const { c, states, root, deps } = setup({
       retryDelaysMs: [1, 1],
       download: { ...dl, download: async (u, d, f, p) => { if (f.includes('gemma-4-26B') && fail) throw new Error('fetch failed'); return dl.download(u, d, f, p) } },
     })
-    await c.start(); await c.confirm()
+    // chatting on a model downloaded earlier, then the person chooses a bigger one
+    have(root, 'gemma-4-e4b')
+    saveSettings(deps.settingsPath, { activeModelId: 'gemma-4-e4b' })
+    await c.start(); await c.useModel('gemma-4-26b-a4b')
     expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-e4b' }, canRetry: true, note: expect.stringMatching(/connection/i) })
     fail = false
     states.length = 0
     await c.retry()
-    expect(states).toContainEqual(expect.objectContaining({ phase: 'downloading', chatReady: true, initialUpgrade: true }))
+    expect(states).toContainEqual(expect.objectContaining({ phase: 'downloading', chatReady: true }))
     expect(c.state).toMatchObject({ phase: 'ready', model: { id: 'gemma-4-26b-a4b' } })
   })
   it('I9: transient download failures are retried with backoff', async () => {

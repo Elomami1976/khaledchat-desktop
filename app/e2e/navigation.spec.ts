@@ -15,7 +15,7 @@ async function send(page: Page, text: string) {
 test('search chats from the top bar or ⌘K, run quick actions, go back and forward', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
 
   await send(page, 'shipping wine to canada')
@@ -69,7 +69,7 @@ test('search chats from the top bar or ⌘K, run quick actions, go back and forw
 test('Settings → Danger zone deletes every chat', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   await send(page, 'first chat')
   await page.getByTestId('new-chat').click()
@@ -107,7 +107,7 @@ test('the sidebar can be dragged wider or narrower, is remembered, and double-cl
   const launch = () => electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: userData } })
   let app = await launch()
   let page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   const sidebar = page.getByTestId('sidebar')
   const width = async () => Math.round((await sidebar.boundingBox())!.width)
@@ -141,7 +141,7 @@ test('home ideas: three under the composer; the file ones ask for a file, then s
   writeFileSync(join(src, 'letter.txt'), 'Dear Sam, thank you for you’re help.')
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   await expect(page.getByTestId('suggestion')).toHaveCount(3)
   // until email and calendar are connected, that idea takes the second file idea's place
@@ -164,7 +164,7 @@ test('home ideas: three under the composer; the file ones ask for a file, then s
 test('hiding the sidebar slides it away, and it comes back', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   const slot = page.getByTestId('sidebar-slot')
   const w = async () => Math.round((await slot.boundingBox())?.width ?? 0)
@@ -182,7 +182,7 @@ test('Windows and Linux: no title bar or menu bar; the window buttons sit over t
   test.skip(process.platform === 'darwin', 'the Mac keeps its traffic lights')
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   const win = await app.evaluate(({ BrowserWindow }) => { const w = BrowserWindow.getAllWindows()[0]; return { menu: w.isMenuBarVisible(), content: w.getContentBounds(), outer: w.getBounds() } })
   expect(win.menu).toBe(false)
@@ -205,7 +205,7 @@ test('Windows and Linux: no title bar or menu bar; the window buttons sit over t
 test('switching between chats never flashes the new-chat screen (or hides and shows Hob in the corner)', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   for (const t of ['first', 'second']) {
     await page.getByTestId('new-chat').click()

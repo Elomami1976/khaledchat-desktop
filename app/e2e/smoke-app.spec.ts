@@ -21,7 +21,7 @@ test('the real tools work in the app', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: { ...process.env, HOB_FAKE: '1', HOB_REAL_TOOLS: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-smoke-')) } })
   try {
     const page = await app.firstWindow()
-    await page.getByTestId('setup-download').click()
+    await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
     // chat opens; the status may already show the image model downloading
     await expect(page.getByTestId('composer-input')).toBeVisible({ timeout: 60_000 })
 

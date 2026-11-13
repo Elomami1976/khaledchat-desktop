@@ -3,6 +3,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { ChecksumError, ensureModelFile, partialDownloadGB, fileNameFor, isVerified, type DownloadDeps } from '../src/main/downloader'
+import { DownloadConsent } from '../src/main/consent'
+
+// Khaled Chat: these downloads have the person's OK (consent.test.ts covers downloads without one)
+const granted = new DownloadConsent()
+granted.grant('model:test')
+const C = { consentKey: 'model:test', consent: granted }
 
 const URL = 'https://huggingface.co/x/y/resolve/main/model-Q4.gguf'
 const dir = () => mkdtempSync(join(tmpdir(), 'hob-dl-'))
@@ -24,14 +30,14 @@ describe('ensureModelFile', () => {
     expect(partial).toBeGreaterThanOrEqual(64 * 1024 / 1e9)
     // free space is short by less than the partial file already holds → still OK
     const dp = deps({ freeDiskGB: vi.fn(async () => 10 + 0.0001 - partial / 2) })
-    await expect(ensureModelFile({ url: URL, sha256: 'good', sizeGB: 0.0001, dir: d }, dp)).resolves.toContain('model-Q4.gguf')
+    await expect(ensureModelFile({ url: URL, sha256: 'good', sizeGB: 0.0001, dir: d, ...C }, dp)).resolves.toContain('model-Q4.gguf')
   })
   it('derives file name from url', () => {
     expect(fileNameFor(URL)).toBe('model-Q4.gguf')
   })
   it('downloads, verifies, writes .ok marker', async () => {
     const d = dir(); const dp = deps()
-    const p = await ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d }, dp)
+    const p = await ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d, ...C }, dp)
     expect(p).toBe(join(d, 'model-Q4.gguf'))
     expect(isVerified(d, URL)).toBe(true)
   })
@@ -39,19 +45,19 @@ describe('ensureModelFile', () => {
     const d = dir()
     writeFileSync(join(d, 'model-Q4.gguf'), 'data'); writeFileSync(join(d, 'model-Q4.gguf.ok'), 'good')
     const dp = deps()
-    await ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d }, dp)
+    await ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d, ...C }, dp)
     expect(dp.download).not.toHaveBeenCalled()
     expect(dp.hashFile).not.toHaveBeenCalled()
   })
   it('refuses when disk is too small', async () => {
     const d = dir()
-    await expect(ensureModelFile({ url: URL, sha256: 'good', sizeGB: 20, dir: d }, deps({ freeDiskGB: async () => 25 })))
+    await expect(ensureModelFile({ url: URL, sha256: 'good', sizeGB: 20, dir: d, ...C }, deps({ freeDiskGB: async () => 25 })))
       .rejects.toMatchObject({ name: 'DiskSpaceError', needGB: 5 })
   })
   it('retries once on checksum mismatch, then fails and deletes the file', async () => {
     const d = dir()
     const dp = deps({ hashFile: vi.fn(async () => 'bad') })
-    await expect(ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d }, dp)).rejects.toBeInstanceOf(ChecksumError)
+    await expect(ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d, ...C }, dp)).rejects.toBeInstanceOf(ChecksumError)
     expect(dp.download).toHaveBeenCalledTimes(2)
     expect(existsSync(join(d, 'model-Q4.gguf'))).toBe(false)
   })
@@ -59,7 +65,7 @@ describe('ensureModelFile', () => {
     const d = dir()
     const hashes = ['bad', 'good']
     const dp = deps({ hashFile: vi.fn(async () => hashes.shift()!) })
-    await ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d }, dp)
+    await ensureModelFile({ url: URL, sha256: 'good', sizeGB: 1, dir: d, ...C }, dp)
     expect(isVerified(d, URL)).toBe(true)
   })
 })

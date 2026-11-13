@@ -3,6 +3,7 @@ import { hob } from '../api'
 import { startRecording } from './record'
 import { prefs } from './prefs'
 import { t } from '../../../shared/i18n'
+import { confirmDownload } from '../components/DownloadConfirm'
 
 type Prepared = Awaited<ReturnType<typeof hob.speech.prepare>>
 
@@ -26,6 +27,11 @@ export function useDictation(onText: (text: string) => void) {
     // the system prompt appears here the first time; after a "no", point to Settings
     if (!(await hob.speech.mic())) return setError({ text: t('Hob needs microphone access for dictation.'), micSettings: true })
     if (!prepared.current) {
+      // Khaled Chat: the dictation model is downloaded only after the person confirms it
+      if (!hob.fake) {
+        const speech = (await hob.components.list()).find((c) => c.id === 'speech')
+        if (speech && !speech.installed && !speech.installing && !(await confirmDownload('component:speech'))) return
+      }
       prepared.current = hob.speech.prepare()
       prepared.current.catch(() => { prepared.current = null })
       // load the model while the user talks (first use of a session takes a while)

@@ -12,9 +12,10 @@ test('first run: recommend → download → chat', async () => {
   const page = await app.firstWindow()
 
   // The recommendation stays personal, with one combined download size.
-  await expect(page.getByTestId('setup-download-size')).toHaveText('19.6 GB download')
+  // Khaled Chat: only the chosen model is downloaded (Hob added a starter model: 19.6 GB)
+  await expect(page.getByTestId('setup-download-size')).toHaveText('14.5 GB download')
   await expect(page.getByTestId('setup-recommended')).toContainText('Gemma 4 26B')
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
 
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   // grandma can start typing right away
@@ -122,9 +123,9 @@ test('choose a different model from the list', async () => {
   await page.getByRole('button', { name: 'Use this model' }).click()
   await expect(page.getByTestId('model-option')).toHaveCount(0)
   await expect(page.getByTestId('setup-recommended')).toContainText('gpt-oss 20B')
-  await expect(page.getByTestId('setup-download-size')).toHaveText('17.3 GB download')
+  await expect(page.getByTestId('setup-download-size')).toHaveText('12.2 GB download') // Khaled Chat: no starter model added (Hob: 17.3 GB)
 
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   await expect(page.getByTestId('status-tooltip')).toContainText('gpt-oss 20B')
   await app.close()

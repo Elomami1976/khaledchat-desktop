@@ -5,6 +5,7 @@ import { ChevronRight, LoaderCircle } from 'lucide-react'
 import { Mascot } from '../components/Mascot'
 import { Dialog } from '../components/ui'
 import { ModelPicker } from '../components/ModelPicker'
+import { confirmDownload, DownloadConfirmHost } from '../components/DownloadConfirm'
 import { language, msg, t } from '../../../shared/i18n'
 
 const eta = (s: number) => (s <= 0 ? t('Estimating time remaining…') : s < 90 ? t('About a minute left') : s < 5400 ? t('About {count} minutes left', { count: Math.round(s / 60) }) : t('About {count} hours left', { count: Math.round(s / 3600) }))
@@ -59,8 +60,8 @@ export function Onboarding({ state }: { state: SetupState }) {
   useEffect(() => setDialog(null), [state.phase])
   const probing = state.phase === 'probing'
   const selected = state.phase === 'choose' ? state.models.find((m) => m.id === selectedId && m.available) ?? state.models.find((m) => m.recommended)! : undefined
-  // the starter comes first only when it's the quicker download (see install in setup.ts)
-  const starter = state.phase === 'choose' && selected && state.starter && state.starter.sizeGB < selected.sizeGB ? state.starter : undefined
+  // Khaled Chat: no starter model is fetched alongside (setup.ts), so the size shown is the chosen model's alone
+  const starter = undefined as { sizeGB: number } | undefined
   const downloading = state.phase === 'downloading'
   const finishing = downloading && state.progress >= 1
   const pct = downloading ? Math.max(0, Math.min(100, Math.floor(state.progress * 100))) : 0
@@ -89,7 +90,12 @@ export function Onboarding({ state }: { state: SetupState }) {
                     <button className="setup-text-button" data-testid="setup-other-options" aria-haspopup="dialog" onClick={() => setDialog('models')}>{t('Change model')} <ChevronRight size={13} className="rtl:-scale-x-100" /></button>
                   </div>
                 </div>
-                <button data-testid="setup-download" disabled={selected.needsDiskGB > 0} className="setup-primary" onClick={() => void hob.setup.confirm(selected.id)}>{t('Download and start')}</button>
+                {/* Khaled Chat: opens the download confirmation; nothing downloads from this button alone */}
+                {state.resume && <p data-testid="setup-resume" className="setup-small-print">{t('A download of {name} was interrupted. It continues only if you confirm it again.', { name: state.resume.name })}</p>}
+                <button data-testid="setup-download" disabled={selected.needsDiskGB > 0} className="setup-primary"
+                  onClick={() => { const id = state.resume?.id ?? selected.id; void confirmDownload(`model:${id}`).then((ok) => { if (ok) void hob.setup.confirm(id) }) }}>
+                  {state.resume ? t('Resume download…') : t('Download and start…')}
+                </button>
                 <p data-testid="setup-download-size" className="setup-small-print">{t('{size} download', { size: gb(selected.sizeGB + (starter?.sizeGB ?? 0)) })}</p>
                 {state.downloadsDir && <p data-testid="setup-downloads" className="setup-small-print setup-folder">
                   <span title={state.downloadsDir}>{t('Saves to {folder}', { folder: state.downloadsDir })}</span>
@@ -107,6 +113,7 @@ export function Onboarding({ state }: { state: SetupState }) {
                   <p data-testid="setup-eta" className="setup-eta" role="status">{finishing ? t('Almost ready…') : eta(state.etaSec)}</p>
                 </div>
                 <button className="setup-text-button" aria-haspopup="dialog" onClick={() => setDialog('details')}>{t('Download details')} <ChevronRight size={13} className="rtl:-scale-x-100" /></button>
+                {!finishing && <button data-testid="setup-cancel" className="setup-text-button" onClick={() => void hob.models.cancel()}>{t('Cancel download')}</button>}
               </>}
               {state.phase === 'error' && <><p data-testid="setup-error" className="text-body text-ink-soft">{state.message}</p><button className="setup-primary" onClick={() => void hob.setup.retry()}>{t('Try again')}</button></>}
             </div>
@@ -116,6 +123,7 @@ export function Onboarding({ state }: { state: SetupState }) {
       {firstRun && <p className="setup-assurance absolute inset-x-6 bottom-6 whitespace-nowrap text-center text-meta font-light text-muted" aria-hidden={!probing}>{t('We’ll ask before downloading a model.')}</p>}
       {dialog === 'models' && state.phase === 'choose' && selected && <ModelPicker models={state.models} selected={selected} onSelect={setSelectedId} onClose={() => setDialog(null)} />}
       {dialog === 'details' && downloading && <DownloadDetails state={state} onClose={() => setDialog(null)} />}
+      <DownloadConfirmHost />
     </div>
   )
 }

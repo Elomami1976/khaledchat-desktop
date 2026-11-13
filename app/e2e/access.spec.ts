@@ -13,7 +13,7 @@ test("a folder Hob can't use yet: access card, then one card for all the renames
   for (const n of ['IMG_1.jpg', 'IMG_2.jpg']) writeFileSync(join(photos, n), n)
   const app = await electron.launch({ args: [main], env: { ...process.env, HOME: home, USERPROFILE: home, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
 
   await page.getByTestId('composer-input').fill('__tools__ [["list_files",{"path":"~/Desktop/hob-test"}]]')

@@ -34,13 +34,37 @@ export type SetupState =
   | { phase: 'probing'; firstRun?: boolean }
   /** computer: what the pick is based on, e.g. "Apple M3 Pro · 36 GB memory". starter: a small model fetched first so chat opens in minutes */
   /** downloadsDir: where downloads go, when it can be changed (Windows, Linux) */
-  | { phase: 'choose'; recommended: ModelSummary; models: ModelOption[]; liteMode: boolean; needsDiskGB: number; computer: string; starter?: ModelSummary; downloadsDir?: string }
+  /** resume: a download that was interrupted last time; it continues only after the person confirms it again */
+  | { phase: 'choose'; recommended: ModelSummary; models: ModelOption[]; liteMode: boolean; needsDiskGB: number; computer: string; starter?: ModelSummary; downloadsDir?: string; resume?: ModelSummary }
   /** starter: set while the small model downloads. initialUpgrade: the first full model is downloading while chat runs on the starter */
   | { phase: 'downloading'; target: ModelSummary; progress: number; etaSec: number; chatReady: boolean; note?: string; starter?: ModelSummary; initialUpgrade?: boolean }
   | { phase: 'ready'; model: ModelSummary; liteMode: boolean; note?: string; canRetry?: boolean }
   | { phase: 'error'; message: string }
 
+/**
+ * Khaled Chat: what a download confirmation shows. key: 'model:<id>' or 'component:<python|search|speech|vision>'.
+ * sizeEstimated: the size is an estimate (labelled as one). parts: the separate files or steps, with their sources.
+ */
+export type DownloadInfo = {
+  key: string
+  name: string
+  sizeGB: number
+  sizeEstimated: boolean
+  /** already on disk from an interrupted download (it resumes from there) */
+  partialGB?: number
+  sources: string[]
+  destination: string
+  license?: string
+  parts: { name: string; source: string; sizeGB?: number; license?: string }[]
+  note?: string
+}
+export type ComponentState = { id: 'python' | 'search' | 'speech' | 'vision'; installed: boolean; installing: boolean; progress?: number; error?: string; available: boolean; unavailableReason?: string }
+
 export interface HobApi {
+  /** Khaled Chat: every download is confirmed first; approve() is called only by the confirmation dialog */
+  downloads: { info(key: string): Promise<DownloadInfo | { error: string }>; approve(key: string): Promise<boolean> }
+  /** optional parts installed only when the person asks for them in Settings */
+  components: { list(): Promise<ComponentState[]>; install(id: ComponentState['id']): Promise<ComponentState[]>; cancel(id: ComponentState['id']): Promise<boolean>; onChanged(cb: (list: ComponentState[]) => void): () => void }
   platform: string
   /** test mode: canned model, search and dictation */
   fake: boolean

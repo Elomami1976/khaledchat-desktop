@@ -3,6 +3,10 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { expect, it } from 'vitest'
 import { PY_PACKAGES, PythonRuntime, SEARXNG_SKIP, pythonBin, type RuntimeDeps } from '../src/main/python/runtime'
+import { DownloadConsent } from '../src/main/consent'
+// Khaled Chat: these tests cover installs the person has confirmed (consent.test.ts covers the rest)
+class ConfirmedConsent extends DownloadConsent { override has() { return true } override assert() {} }
+const yes = new ConfirmedConsent()
 
 function fakeDeps(root: string, fail = false) {
   const calls: string[] = []
@@ -20,7 +24,7 @@ function fakeDeps(root: string, fail = false) {
 it('downloads, extracts, installs pinned packages once, then reports ready', async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-py-'))
   const { deps, calls } = fakeDeps(root)
-  const rt = new PythonRuntime(root, deps, 'darwin-arm64')
+  const rt = new PythonRuntime(root, deps, 'darwin-arm64', yes)
   expect(rt.isReady()).toBe(false)
   const progress: number[] = []
   const [a, b] = await Promise.all([rt.ensure((f) => progress.push(f)), rt.ensure()])
@@ -36,7 +40,7 @@ it('downloads, extracts, installs pinned packages once, then reports ready', asy
 
 it('a failed install is not marked ready and can be retried', async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-py-'))
-  const rt = new PythonRuntime(root, fakeDeps(root, true).deps, 'darwin-arm64')
+  const rt = new PythonRuntime(root, fakeDeps(root, true).deps, 'darwin-arm64', yes)
   await expect(rt.ensure()).rejects.toThrow('pip failed')
   expect(rt.isReady()).toBe(false)
   expect(existsSync(join(root, 'ready.json'))).toBe(false)
@@ -44,7 +48,7 @@ it('a failed install is not marked ready and can be retried', async () => {
 
 it('unsupported platforms get a plain message', async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-py-'))
-  await expect(new PythonRuntime(root, fakeDeps(root).deps, 'sunos-sparc').ensure()).rejects.toThrow('available on this computer')
+  await expect(new PythonRuntime(root, fakeDeps(root).deps, 'sunos-sparc', yes).ensure()).rejects.toThrow('available on this computer')
 })
 
 it('pins every package the data stack pulls in, not just the top-level ones', () => {
@@ -55,7 +59,7 @@ it('pins every package the data stack pulls in, not just the top-level ones', ()
 
 it('an install made with a different package list is not ready (reinstalls)', async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-py-'))
-  const rt = new PythonRuntime(root, fakeDeps(root).deps, 'darwin-arm64')
+  const rt = new PythonRuntime(root, fakeDeps(root).deps, 'darwin-arm64', yes)
   await rt.ensure()
   const { writeFileSync: w } = await import('node:fs')
   w(join(root, 'ready.json'), JSON.stringify({ release: '20260929', packages: ['pandas==1.0'] })) // stale list
@@ -65,7 +69,7 @@ it('an install made with a different package list is not ready (reinstalls)', as
 it('also installs the pinned SearXNG source and its packages', async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-py-'))
   const { deps, calls } = fakeDeps(root)
-  await new PythonRuntime(root, deps, 'darwin-arm64').ensureSearxng()
+  await new PythonRuntime(root, deps, 'darwin-arm64', yes).ensureSearxng()
   expect(calls.some((c) => c.startsWith('fetch') && c.includes('4e2c1ea7f468c9d1b16206e9d4079999a2eb0627.tar.gz'))).toBe(true)
   expect(calls.filter((c) => c.startsWith('tar'))).toHaveLength(2)
   expect(PY_PACKAGES).toContain('flask==3.1.3')
@@ -80,7 +84,7 @@ it('a web search install that fails leaves Python working, and is tried again on
   let broken = true
   const exec = deps.exec
   deps.exec = async (cmd, args) => { if (broken && args.some((a) => a.includes('searxng.tar.gz'))) throw new Error("Can't create 'apache2'"); return exec(cmd, args) }
-  const rt = new PythonRuntime(root, deps, 'darwin-arm64')
+  const rt = new PythonRuntime(root, deps, 'darwin-arm64', yes)
   await expect(rt.ensureSearxng()).rejects.toThrow('apache2')
   expect(rt.isReady()).toBe(true)
   await expect(rt.ensure()).resolves.toBe(rt.python)
@@ -92,7 +96,7 @@ it('a web search install that fails leaves Python working, and is tried again on
 it("SearXNG unpacks without its utils folder: it holds a symlink, which Windows can't create without admin rights", async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-py-'))
   const { deps, calls } = fakeDeps(root)
-  await new PythonRuntime(root, deps, 'darwin-arm64').ensureSearxng()
+  await new PythonRuntime(root, deps, 'darwin-arm64', yes).ensureSearxng()
   const searx = calls.find((c) => c.startsWith('tar') && c.includes('searxng.tar.gz'))!
   for (const a of SEARXNG_SKIP) expect(searx).toContain(a)
   expect(SEARXNG_SKIP).toContain('--exclude=*/utils')
@@ -108,7 +112,7 @@ it("Windows: unpacks with Windows' own tar.exe, not whichever tar is first on PA
       void args
     },
   }
-  await new PythonRuntime(root, deps, 'win32-x64').ensure().catch(() => {})
+  await new PythonRuntime(root, deps, 'win32-x64', yes).ensure().catch(() => {})
   expect(tars.length).toBeGreaterThan(0)
   for (const t of tars) expect(t).toMatch(/System32[\\/]tar\.exe$/i)
 })

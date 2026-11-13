@@ -5,6 +5,7 @@ import { tarCmd } from '../tar'
 import { ChecksumError, realDeps } from '../downloader'
 import { installedVersions, installPackages, nameOf, sitePackagesOf } from './packages'
 import { SEARXNG_SHA256, SEARXNG_URL } from '../search/searxng'
+import { componentKey, consent as appConsent, type DownloadConsent } from '../consent'
 
 // Pinned and checksummed: python-build-standalone release ≥2 weeks old at pin time.
 export const PY_RELEASE = '20260929'
@@ -40,17 +41,22 @@ export const pythonBin = (root: string, platform: string = process.platform) =>
 
 export type RuntimeDeps = {
   /** download + sha256-verify a file into dir; returns its path */
-  fetchFile(url: string, sha256: string, sizeGB: number, dir: string, onProgress: (fraction: number) => void, name?: string): Promise<string>
-  /** run a command; rejects on a non-zero exit */
-  exec(cmd: string, args: string[]): Promise<void>
+  fetchFile(url: string, sha256: string, sizeGB: number, dir: string, onProgress: (fraction: number) => void, name?: string, signal?: AbortSignal): Promise<string>
+  /** run a command; rejects on a non-zero exit (or when signal aborts it) */
+  exec(cmd: string, args: string[], signal?: AbortSignal): Promise<void>
 }
+
+/** Khaled Chat: what the agent is told when code tools aren't installed (it passes this on to the person) */
+export const PYTHON_NOT_INSTALLED = "Code tools aren't installed, and Khaled Chat never downloads them on its own. Tell the user they can install them in Settings → Optional components."
+export const SEARCH_NOT_INSTALLED = "Web search isn't installed, and Khaled Chat never downloads it on its own. Tell the user they can install it in Settings → Optional components."
+export const PACKAGES_OFF = 'Installing extra Python packages is turned off in Khaled Chat for now (downloads need the user\'s OK, and this one isn\'t supported yet). Do it with the packages already installed.'
 
 export const realRuntimeDeps: RuntimeDeps = {
   // Small (30–70 MB), so a plain fetch without resume; the model downloader only takes .gguf names.
-  async fetchFile(url, sha256, _sizeGB, dir, onProgress, name = 'python.tar.gz') {
+  async fetchFile(url, sha256, _sizeGB, dir, onProgress, name = 'python.tar.gz', signal) {
     mkdirSync(dir, { recursive: true })
     const dest = join(dir, name)
-    const res = await fetch(url)
+    const res = await fetch(url, { signal })
     if (!res.ok || !res.body) throw new Error(`Download failed (${res.status})`)
     const total = Number(res.headers.get('content-length')) || 0
     const file = createWriteStream(dest)
@@ -64,8 +70,8 @@ export const realRuntimeDeps: RuntimeDeps = {
     if ((await realDeps.hashFile(dest)) !== sha256) { rmSync(dest, { force: true }); throw new ChecksumError('Code tools download was corrupted') }
     return dest
   },
-  exec: (cmd, args) => new Promise((resolve, reject) => {
-    execFile(cmd, args, { maxBuffer: 64 * 1024 * 1024 }, (err, _out, stderr) => (err ? reject(new Error(`${err.message}\n${stderr}`)) : resolve()))
+  exec: (cmd, args, signal) => new Promise((resolve, reject) => {
+    execFile(cmd, args, { maxBuffer: 64 * 1024 * 1024, ...(signal ? { signal } : {}) },(err, _out, stderr) => (err ? reject(new Error(`${err.message}\n${stderr}`)) : resolve()))
   }),
 }
 
@@ -80,7 +86,18 @@ export const SEARXNG_SKIP = ['--exclude=*/utils']
 export class PythonRuntime {
   private installing: Promise<string> | undefined
   private installingSearxng: Promise<void> | undefined
-  constructor(private root: string, private deps: RuntimeDeps, private key = `${process.platform}-${process.arch}`) {}
+  /** Khaled Chat: stops the install the person started (Settings → Optional components → Cancel) */
+  private stopping: AbortController | undefined
+  constructor(private root: string, private deps: RuntimeDeps, private key = `${process.platform}-${process.arch}`, private consent: DownloadConsent = appConsent) {}
+
+  get supported() { return !!PY_BUILDS[this.key] }
+  /** stop an install in progress; what was fetched so far is thrown away */
+  cancel(): boolean {
+    if (!this.stopping || (!this.installing && !this.installingSearxng)) return false
+    this.stopping.abort()
+    return true
+  }
+  private signal() { return (this.stopping = new AbortController()).signal }
 
   get python() { return pythonBin(this.root, this.key.split('-')[0]) }
   get dir() { return this.root }
@@ -98,9 +115,9 @@ export class PythonRuntime {
 
   /** from PyPI, prebuilt only; resolves to the versions now installed */
   async installPackages(specs: string[]): Promise<{ ok: true; versions: Record<string, string | undefined> } | { ok: false; error: string }> {
-    const python = await this.ensure()
-    const r = await installPackages(python, this.packagesDir, PY_VERSION, specs, this.deps.exec)
-    return r.ok ? { ok: true, versions: this.versions(specs) } : r
+    // Khaled Chat: packages from PyPI are a download with no confirmation flow yet, so they're refused
+    void specs
+    return { ok: false, error: PACKAGES_OFF }
   }
 
   isReady(): boolean {
@@ -114,26 +131,35 @@ export class PythonRuntime {
   /** Install once; concurrent callers share the same install. Resolves to the python binary. */
   ensure(onProgress: (fraction: number) => void = () => {}): Promise<string> {
     if (this.isReady()) return Promise.resolve(this.python)
-    return (this.installing ??= this.install(onProgress).finally(() => { this.installing = undefined }))
+    if (!PY_BUILDS[this.key]) return Promise.reject(new Error(`Code tools aren't available on this computer (${this.key}).`))
+    // Khaled Chat: installed only under the person's OK (Settings → Optional components), never on first use
+    return (this.installing ??= this.consent.use(componentKey('python'), () => this.install(onProgress, this.signal()), PYTHON_NOT_INSTALLED)
+      .finally(() => { this.installing = undefined }))
   }
+
+  get searchReady() { return this.isReady() && this.searxngReady() }
 
   /**
    * Python plus the SearXNG source, for web search. Kept apart from ensure(), so a search install that
    * fails doesn't take Python and the image tools down with it.
    */
   async ensureSearxng(): Promise<void> {
+    if (this.searchReady) return
+    // Khaled Chat: both parts need the person's OK; checked before anything is fetched
+    if (!this.isReady()) this.consent.assert(componentKey('python'), SEARCH_NOT_INSTALLED)
+    this.consent.assert(componentKey('search'), SEARCH_NOT_INSTALLED)
     await this.ensure()
-    if (this.searxngReady()) return
-    return (this.installingSearxng ??= this.installSearxng().finally(() => { this.installingSearxng = undefined }))
+    return (this.installingSearxng ??= this.consent.use(componentKey('search'), () => this.installSearxng(this.signal()), SEARCH_NOT_INSTALLED)
+      .finally(() => { this.installingSearxng = undefined }))
   }
 
   private searxngReady(): boolean {
     try { return JSON.parse(readFileSync(join(this.root, SEARXNG_MARKER), 'utf8')).sha256 === SEARXNG_SHA256 } catch { return false }
   }
 
-  private async installSearxng() {
+  private async installSearxng(signal?: AbortSignal) {
     rmSync(join(this.root, SEARXNG_MARKER), { force: true })
-    const searx = await this.deps.fetchFile(SEARXNG_URL, SEARXNG_SHA256, 0.01, this.root, () => {}, 'searxng.tar.gz')
+    const searx = await this.deps.fetchFile(SEARXNG_URL, SEARXNG_SHA256, 0.01, this.root, () => {}, 'searxng.tar.gz', signal)
     rmSync(join(this.root, 'searxng'), { recursive: true, force: true })
     mkdirSync(join(this.root, 'searxng'))
     await this.deps.exec(tarCmd(this.key), ['-xzf', searx, '-C', join(this.root, 'searxng'), '--strip-components=1', ...SEARXNG_SKIP])
@@ -141,16 +167,16 @@ export class PythonRuntime {
     writeFileSync(join(this.root, SEARXNG_MARKER), JSON.stringify({ sha256: SEARXNG_SHA256 }))
   }
 
-  private async install(onProgress: (fraction: number) => void): Promise<string> {
+  private async install(onProgress: (fraction: number) => void, signal?: AbortSignal): Promise<string> {
     const build = PY_BUILDS[this.key]
     if (!build) throw new Error(`Code tools aren't available on this computer (${this.key}).`)
     mkdirSync(this.root, { recursive: true })
     rmSync(join(this.root, 'python'), { recursive: true, force: true })
     rmSync(join(this.root, MARKER), { force: true })
-    const tgz = await this.deps.fetchFile(pyUrl(this.key), build.sha256, build.sizeGB, this.root, (f) => onProgress(f * 0.3))
-    await this.deps.exec(tarCmd(this.key), ['-xzf', tgz, '-C', this.root])
+    const tgz = await this.deps.fetchFile(pyUrl(this.key), build.sha256, build.sizeGB, this.root, (f) => onProgress(f * 0.3), undefined, signal)
+    await this.deps.exec(tarCmd(this.key), ['-xzf', tgz, '-C', this.root], signal)
     onProgress(0.35)
-    await this.deps.exec(this.python, ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--only-binary=:all:', ...PY_PACKAGES])
+    await this.deps.exec(this.python, ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--only-binary=:all:', ...PY_PACKAGES], signal)
     onProgress(0.9)
     // precompiled bytecode: the sandbox can't write __pycache__, and first runs drop from ~13 s to <1 s
     await this.deps.exec(this.python, ['-m', 'compileall', '-q', join(this.root, 'python')]).catch(() => {})

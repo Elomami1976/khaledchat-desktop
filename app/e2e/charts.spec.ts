@@ -11,7 +11,7 @@ test('charts: Hob draws them in the chat, and they download as PNG', async () =>
   const errors: string[] = []
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
 
   const chart = { type: 'bar', title: 'Sales by month', x: 'month', series: ['sales', 'costs'], unit: '€', data: [{ month: 'Jan', sales: 10, costs: 4 }, { month: 'Feb', sales: 30, costs: 8 }, { month: 'Mar', sales: 22, costs: 9 }] }
@@ -59,7 +59,7 @@ test('charts: Hob draws them in the chat, and they download as PNG', async () =>
 test('a chart goes where the model wrote its placeholder ({chart}, [Chart: …]); without one, above the reply', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   const chart = { type: 'bar', title: 'Total Revenue by Region', x: 'region', series: ['revenue'], data: [{ region: 'North', revenue: 73000 }, { region: 'West', revenue: 52000 }] }
   // a newline in the box is typed with Shift+Enter; fill() puts it in directly

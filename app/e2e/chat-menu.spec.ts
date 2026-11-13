@@ -14,7 +14,7 @@ async function send(page: Page, text: string) {
 test('the … beside a chat: pin, rename, save as Markdown, delete', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
-  await page.getByTestId('setup-download').click()
+  await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   await send(page, 'weekend plans')
   await page.getByTestId('new-chat').click()

@@ -3,11 +3,17 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
 import { SpeechModel, WHISPER } from '../src/main/speech'
+import { DownloadConsent } from '../src/main/consent'
+// Khaled Chat: these tests cover installs the person has confirmed (consent.test.ts covers the rest)
+class ConfirmedConsent extends DownloadConsent { override has() { return true } override assert() {} }
+const yes = new ConfirmedConsent()
+// SpeechModel uses the app's consent store unless given one; these tests give it a confirmed one
+const Speech = class extends SpeechModel { constructor(root: string, deps: ConstructorParameters<typeof SpeechModel>[1]) { super(root, deps, yes) } }
 
 it('downloads every pinned Whisper file once, verified, into its own folder', async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-speech-'))
   const got: string[] = []
-  const m = new SpeechModel(root, {
+  const m = new Speech(root, {
     async fetchFile(url, sha, _gb, dir, onProgress, name) {
       expect(url).toContain(WHISPER.revision)
       expect(sha).toMatch(/^[0-9a-f]{64}$/)
@@ -29,7 +35,7 @@ it('downloads every pinned Whisper file once, verified, into its own folder', as
 
 it('a download that started in the background shows its progress to dictation started meanwhile', async () => {
   const root = mkdtempSync(join(tmpdir(), 'hob-speech-'))
-  const m = new SpeechModel(root, {
+  const m = new Speech(root, {
     async fetchFile(_url, _sha, _gb, dir, onProgress, name) {
       await new Promise((r) => setTimeout(r, 1))
       mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, name!), 'x'); onProgress(1)

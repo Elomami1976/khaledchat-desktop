@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { ModelRow, UserSettings } from '../../../shared/agent'
-import type { SetupState, StorageUsage, VisionState } from '../../../shared/types'
+import type { ComponentState, SetupState, StorageUsage, VisionState } from '../../../shared/types'
+import { confirmDownload } from '../components/DownloadConfirm'
 import { ChevronDown } from 'lucide-react'
 import { hob } from '../api'
 import { Dialog, Switch, button } from '../components/ui'
-import { language, t } from '../../../shared/i18n'
+import { language, msg, t } from '../../../shared/i18n'
 
 const gb = (n: number) => n > 0 && n < .1 ? t('Less than 0.1 GB') : t('{size} GB', { size: new Intl.NumberFormat(language(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n) })
 const left = (s: number) => (s <= 0 ? '' : ' · ' + (s < 90 ? t('about a minute left') : s < 5400 ? t('about {count} minutes left', { count: Math.round(s / 60) }) : t('about {count} hours left', { count: Math.round(s / 3600) })))
@@ -51,8 +52,11 @@ export function ModelSettings() {
   const downloading = setup?.phase === 'downloading' ? setup : null
   const busyId = downloading?.target.id ?? starting
   const unavailable = models.filter((m) => !m.available)
-  function use(id: string) {
+  async function use(id: string) {
     if (busyId) return
+    // Khaled Chat: a model that isn't downloaded yet needs the person's OK first
+    const row = models.find((m) => m.id === id)
+    if (row && !row.downloaded && !(await confirmDownload(`model:${id}`))) return
     setStarting(id)
     void hob.models.use(id).then(reload).finally(() => setStarting((cur) => (cur === id ? null : cur)))
   }
@@ -92,8 +96,8 @@ export function ModelSettings() {
                     </div>
                   </div>
                 ) : !m.active && (
-                  <button data-testid="model-use" disabled={!!busyId} title={busyId ? t('Wait for the current download to finish') : undefined} onClick={() => use(m.id)} className={`${button.secondary} whitespace-nowrap shrink-0`}>
-                    {m.downloaded ? t('Use model') : t('Download & use')}
+                  <button data-testid="model-use" disabled={!!busyId} title={busyId ? t('Wait for the current download to finish') : undefined} onClick={() => void use(m.id)} className={`${button.secondary} whitespace-nowrap shrink-0`}>
+                    {m.downloaded ? t('Use model') : t('Download & use…')}
                   </button>
                 )}
                 {m.downloaded && !m.active && busyId !== m.id && (
@@ -102,26 +106,9 @@ export function ModelSettings() {
                 </div>
               </div>
             ))}
-            <p className="px-4 py-2 text-meta font-medium text-muted">{t('Image support')}</p>
-            <div data-testid="settings-vision" className="flex items-start gap-3 px-4 py-3">
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{vision.phase === 'ready' ? vision.name : t('Photos and screenshots')}
-                  {vision.phase === 'ready' && <span className="ms-2 rounded-full bg-line px-2 text-meta font-normal leading-5 text-ink-soft">{t('Downloaded')}</span>}
-                </p>
-                <p className="text-ui text-muted">{t('Added automatically. Only needed for photos and screenshots.')}</p>
-                <p className="mt-0.5 text-meta text-muted">
-                  {vision.phase === 'ready' ? `${gb(vision.sizeGB)} · ${t('Used when you attach an image')}`
-                    : vision.phase === 'downloading' ? t('Downloading… {percent}% · You can keep chatting', { percent: Math.min(99, Math.floor(vision.progress * 100)) })
-                    : vision.phase === 'error' ? t('Download interrupted: {message}', { message: vision.message })
-                    : t('Not downloaded yet · Downloads after chat is ready')}
-                </p>
-                {vision.phase === 'downloading' && <div role="progressbar" aria-label={t('Image support download')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(vision.progress * 100)} className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
-                  <div className="h-full rounded-full bg-ink" style={{ width: `${Math.max(1, vision.progress * 100)}%` }} />
-                </div>}
-              </div>
-              {vision.phase === 'error' && <button className={button.secondary} onClick={() => void hob.vision.retry()}>{t('Try again')}</button>}
-            </div>
           </div>
+          {/* Khaled Chat: image support is an optional component now, installed only when asked for */}
+          <OptionalComponents vision={vision} />
           {unavailable.length > 0 && <>
             <button data-testid="other-models" aria-expanded={showOther} aria-controls="other-model-list" onClick={() => setShowOther(!showOther)} className="mt-3 flex items-center gap-1.5 py-1 text-meta text-muted hover:text-ink">
               <ChevronDown size={13} className={showOther ? 'rotate-180' : ''} />
@@ -139,6 +126,54 @@ export function ModelSettings() {
   )
 }
 
+const COMPONENT_TEXT: Record<ComponentState['id'], { name: string; help: string }> = {
+  python: { name: msg('Code tools'), help: msg('Python and data libraries, so the assistant can work with spreadsheets, charts and documents.') },
+  search: { name: msg('Web search'), help: msg('A search engine that runs on this computer. Searches only run while Web access is on.') },
+  speech: { name: msg('Dictation'), help: msg('Turns your speech into text on this computer.') },
+  vision: { name: msg('Image support'), help: msg('Lets the assistant look at photos and screenshots you attach.') },
+}
+
+/** Khaled Chat: optional parts, each downloaded only after the person confirms it; cancellable while it downloads */
+export function OptionalComponents({ vision }: { vision: VisionState }) {
+  const [list, setList] = useState<ComponentState[]>([])
+  useEffect(() => { void hob.components.list().then(setList); return hob.components.onChanged(setList) }, [])
+  useEffect(() => { void hob.components.list().then(setList) }, [vision.phase])
+  async function install(id: ComponentState['id']) {
+    if (!(await confirmDownload(`component:${id}`))) return
+    setList(await hob.components.install(id))
+  }
+  return (
+    <>
+      <Heading>{t('Optional components')}</Heading>
+      <p className="mb-3 text-meta text-muted">{t('Nothing here is downloaded unless you choose it. Each download is confirmed first.')}</p>
+      <div data-testid="components" className="rounded-card border border-line bg-surface divide-y divide-line">
+        {list.map((c) => {
+          const text = COMPONENT_TEXT[c.id]
+          const progress = c.id === 'vision' && vision.phase === 'downloading' ? vision.progress : c.progress
+          return (
+            <div key={c.id} data-testid={`component-${c.id}`} className="flex items-start gap-3 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{t(text.name)}
+                  {c.installed && <span className="ms-2 rounded-full bg-line px-2 text-meta font-normal leading-5 text-ink-soft">{t('Installed')}</span>}
+                </p>
+                <p className="text-ui text-muted">{t(text.help)}</p>
+                <p className="mt-0.5 text-meta text-muted">
+                  {c.installing ? (progress !== undefined ? t('Downloading… {percent}%', { percent: Math.min(99, Math.floor(progress * 100)) }) : t('Downloading…'))
+                    : c.error ? t('Not installed: {message}', { message: c.error })
+                    : !c.installed && !c.available ? t(c.unavailableReason ?? 'Not available on this computer.')
+                    : !c.installed ? t('Not installed') : ''}
+                </p>
+              </div>
+              {c.installing && <button data-testid={`component-cancel-${c.id}`} className={button.quiet} onClick={() => void hob.components.cancel(c.id)}>{t('Cancel')}</button>}
+              {!c.installing && !c.installed && c.available && <button data-testid={`component-install-${c.id}`} className={`${button.secondary} whitespace-nowrap`} onClick={() => void install(c.id)}>{t('Download…')}</button>}
+            </div>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
 /** Web access: the one switch between offline and online */
 export function PrivacySettings() {
   const [s, setS] = useState<UserSettings | null>(null)
@@ -147,7 +182,7 @@ export function PrivacySettings() {
     <>
       <Heading>{t('Privacy')}</Heading>
       <p className="mb-2 text-meta text-muted">{t('Hob runs on this computer. Your chats and files never leave it.')}</p>
-      <Row label={t('Web access')} help={t('Lets Hob search the web, read pages, and let its code fetch data and install Python packages. Turn it off to stay fully offline.')}>
+      <Row label={t('Web access')} help={t('Off by default. Lets the assistant search the web, read pages, and let its code fetch data. Leave it off to stay offline.')}>
         <Switch testId="web-toggle" label={t('Web access')} on={!!s?.webAccess} onChange={(on) => s && void hob.settings.set({ webAccess: on }).then(setS)} />
       </Row>
     </>
