@@ -14,7 +14,7 @@ import { Journal } from './journal'
 import { fitHistory, ToolBudget } from './history'
 import { decide } from './permissions'
 import { asksToProceed, chartCheck, NO_CHART, claimCheck, claimsFileChanges, mentionsChart, missingCheck, NOTHING_CHANGED, unbackedFiles, proceedCheck, unfinishedCheck } from './claims'
-import { chatNote, chatTitle, cleanTitle, expandCommand, systemPrompt, timeNote, titleRequest, type PromptSkill } from './prompt'
+import { chatNote, chatTitle, cleanTitle, expandCommand, SIMPLE_SYSTEM_PROMPT, systemPrompt, timeNote, titleRequest, type PromptSkill } from './prompt'
 import { repeatCut } from './repeat'
 import type { Tool, TurnCtx } from './tool'
 import { isInside } from '../workspace'
@@ -37,6 +37,8 @@ export type TurnDeps = {
   tools: Tool<any>[]
   python: PythonRuntime | undefined
   webAccess(): boolean
+  /** Khaled Chat: simple chat mode (short prompt, no tools, quick thinking); off when left out */
+  simple?(): boolean
   /** how long it thinks (beside the mic); Normal when left out */
   effort?(): Effort
   trash(path: string): Promise<void>
@@ -257,11 +259,12 @@ export async function runTurn(d: TurnDeps, a: TurnArgs): Promise<StoredMessage> 
   for (const f of [...history.flatMap((m) => m.attachments), ...a.attachments]) if (f.seen && !PHOTO.test(f.name)) alreadyRead.set(resolve(f.path), f.name)
 
   const listing = listDir(chat.dir)
-  const specs = specsFor(d.tools, ctx.webAccess)
+  const simple = d.simple?.() ?? false
+  const specs = simple ? [] : specsFor(d.tools, ctx.webAccess)
   const command = expandCommand(a.text, (n) => d.skills?.find(n))
   const messages: ChatMessage[] = [
     ...conversation(d, chat, history, specs, a.text),
-    { role: 'user', content: [withFiles(command.text, a.attachments), ...lookNotes, noteFor(d, chat), timeNote()].join('\n') },
+    { role: 'user', content: [withFiles(command.text, a.attachments), ...lookNotes, ...(simple ? [] : [noteFor(d, chat)]), timeNote()].join('\n') },
   ]
   // file work from the start: signals that don't depend on the language the user writes in. Anything else
   // starts with a short think and gets the long one as soon as the model calls a tool
@@ -273,7 +276,7 @@ export async function runTurn(d: TurnDeps, a: TurnArgs): Promise<StoredMessage> 
   const ask = (msgs: ChatMessage[]) => {
     if (asked++ === 0) firstAsk = Date.now()
     return d.engine.chat(
-      { messages: msgs, tools: specs, ...effortBudgets(d.effort?.() ?? DEFAULT_EFFORT, usesFiles) },
+      { messages: msgs, tools: specs, ...(simple ? effortBudgets('quick', false) : effortBudgets(d.effort?.() ?? DEFAULT_EFFORT, usesFiles)) },
       { onToken, onTool },
       AbortSignal.any([a.signal, loop.signal]),
     ).then((t) => withoutToolsNote(t.trim()))
@@ -329,7 +332,7 @@ export async function runTurn(d: TurnDeps, a: TurnArgs): Promise<StoredMessage> 
 // sorted: a folder read ahead and the same folder after files arrive list the same way on every system
 const listDir = (dir: string) => { try { return readdirSync(dir).filter((n) => !n.startsWith('.')).sort() } catch { return [] } }
 
-type PromptDeps = Pick<TurnDeps, 'store' | 'skills' | 'prompts' | 'home'>
+type PromptDeps = Pick<TurnDeps, 'store' | 'skills' | 'prompts' | 'home' | 'simple'>
 /** pending: files attached in the message box, not yet in the folder (they arrive with the message) */
 type ChatRef = { id?: string; dir: string; projectId: string | null; pending?: string[] }
 
@@ -351,7 +354,7 @@ export function conversation(d: PromptDeps, chat: ChatRef, history: StoredMessag
   // "save that as a skill": the model only sees earlier replies' words, so give it the code that worked
   const lastReply = /\bskill/i.test(text) && !command.skill ? history.map((m) => m.role).lastIndexOf('assistant') : -1
   return [
-    { role: 'system', content: systemPrompt({ chatsDir: dirname(chat.dir), project: project && { name: project.name, instructions: project.instructions, folders: project.folders, missing }, home: d.home ?? homedir(), tools: d.skills ? specs.map((s) => s.name) : undefined, skills: d.skills?.list(), extra: d.prompts?.(specs.map((s) => s.name)) }) },
+    { role: 'system', content: d.simple?.() ? SIMPLE_SYSTEM_PROMPT : systemPrompt({ chatsDir: dirname(chat.dir), project: project && { name: project.name, instructions: project.instructions, folders: project.folders, missing }, home: d.home ?? homedir(), tools: d.skills ? specs.map((s) => s.name) : undefined, skills: d.skills?.list(), extra: d.prompts?.(specs.map((s) => s.name)) }) },
     ...fitHistory(history.map((m, i) => ({ role: m.role, content: attached(expand(m.content, i), m.attachments) + toolsUsed(m.steps) + (i === lastReply ? codeThatWorked(m.steps) : ''), files: filesSeen(m.attachments) }))),
   ]
 }
@@ -368,9 +371,10 @@ export function noteFor(d: PromptDeps, chat: ChatRef): string {
 
 /** Read a chat ahead (or a new chat that will use this folder), so its next message starts at once. */
 export async function readAhead(d: PromptDeps & Pick<TurnDeps, 'engine' | 'tools' | 'webAccess' | 'effort'>, chat: ChatRef): Promise<void> {
-  const specs = specsFor(d.tools, d.webAccess())
+  const simple = d.simple?.() ?? false
+  const specs = simple ? [] : specsFor(d.tools, d.webAccess())
   // gpt-oss's reasoning level is part of what it reads first, so it's read ahead the same way
-  await d.engine.preload(conversation(d, chat, chat.id ? d.store.messages(chat.id) : [], specs), specs, effortBudgets(d.effort?.() ?? DEFAULT_EFFORT, false).reasoning)
+  await d.engine.preload(conversation(d, chat, chat.id ? d.store.messages(chat.id) : [], specs), specs, effortBudgets(simple ? 'quick' : d.effort?.() ?? DEFAULT_EFFORT, false).reasoning)
 }
 
 /** what the model can now do in a folder the user just allowed */

@@ -81,5 +81,11 @@
   "Your AI. Your Device. Your Privacy.": "ذكاؤك. جهازك. خصوصيتك.",
   "Your first name": "اسمك الأول",
   "{name}, {count} threads": "{name}، {count} خيوط معالجة",
-  "{total} total, {free} free now": "{total} إجمالًا، {free} متاحة الآن"
+  "{total} total, {free} free now": "{total} إجمالًا، {free} متاحة الآن",
+  "Chat mode": "وضع المحادثة",
+  "Full": "كامل",
+  "Full chat is on now.": "المحادثة الكاملة مفعّلة الآن.",
+  "Simple": "بسيط",
+  "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.": "الوضع البسيط يجيب أسرع بكثير على الأجهزة القديمة: بلا ملفات أو أدوات أو ويب. يستخدمه الوضع التلقائي عند عدم توفر تسريع رسومي.",
+  "Simple chat is on now.": "المحادثة البسيطة مفعّلة الآن."
 }

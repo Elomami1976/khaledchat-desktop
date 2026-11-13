@@ -59,7 +59,16 @@ New regressions: none known after the fixes above.
 | Persistence | Verified: after a restart the app reaches Ready again, and the SQLite store holds all chats and messages, including the stopped reply |
 | Spec status | 1 run passed every step up to the restart. The spec's final check (sidebar chat item) failed because the sidebar is hidden in the background window. It is now checked through the app API; that fix hasn't been re-run |
 
-**Conclusion:** local inference works end to end on a 2011 dual-core CPU without AVX2, but it is too slow to be pleasant there. 8 GB machines with a newer CPU (AVX2) or a GPU should be much faster; that is not measured. The agent's long system prompt dominates the first reply. A shorter prompt or a "simple chat" mode for low-end hardware is a recommended follow-up.
+### Simple chat mode (added after this test)
+
+Settings → General → **Chat mode** (Auto, Simple or Full). Auto turns Simple on when the engine finds no graphics acceleration, which is the case on this PC. Simple uses a 63-token system prompt instead of 4,240 tokens, offers no tools, and thinks briefly.
+
+| Measure on this PC | Full mode | Simple mode |
+|---|---|---|
+| First reply () | 10–12 min (2 runs) | **73 s and 148 s** (2 runs) |
+| Full real-engine spec (reply, streaming, stop, restart) | not completed | **passed** (15.7 min including the app's two start-ups) |
+
+**Earlier conclusion (Full mode):** local inference works end to end on a 2011 dual-core CPU without AVX2, but it is too slow to be pleasant there. 8 GB machines with a newer CPU (AVX2) or a GPU should be much faster; that is not measured. The agent's long system prompt dominates the first reply. A shorter prompt or a "simple chat" mode for low-end hardware is a recommended follow-up.
 
 ## Not tested
 

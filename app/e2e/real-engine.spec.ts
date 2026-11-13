@@ -44,17 +44,17 @@ test('real engine: probe → confirm download → load → stream → stop → p
   console.log('REPLY 1:', JSON.stringify(await page.getByTestId('message-assistant').last().innerText()), 'in', Date.now() - t0, 'ms')
 
   // streaming: a longer answer grows on screen; Stop ends it and keeps what was written
-  await page.getByTestId('composer-input').fill('Write a numbered list of 30 fruits, one per line.')
+  await page.getByTestId('composer-input').fill('Write a long story of about 800 words about a lighthouse keeper.')
   t0 = Date.now()
   await page.getByTestId('composer-send').click()
   const last = page.getByTestId('message-assistant').last()
-  // the reply (thinking included) has started coming in; lists may render as bullets, so measure length
-  await expect.poll(async () => (await last.innerText()).length, { timeout: 15 * 60_000, intervals: [2000] }).toBeGreaterThan(60)
-  const first = (await last.innerText()).length
-  await page.waitForTimeout(3000)
-  const later = (await last.innerText()).length
-  console.log('STREAMING chars:', first, '→', later, 'after 3 s; list reached item 3 after', Date.now() - t0, 'ms')
-  expect(later).toBeGreaterThan(first)
+  // sample the reply while it is written: it changes on screen several times (thinking, then the answer growing)
+  const seen = new Set<string>()
+  const deadline = Date.now() + 15 * 60_000
+  while (seen.size < 6 && Date.now() < deadline) { seen.add(await last.innerText()); await page.waitForTimeout(1000) }
+  console.log('STREAMING: reply changed', seen.size, 'times by', Date.now() - t0, 'ms; now', (await last.innerText()).length, 'chars')
+  expect(seen.size).toBeGreaterThanOrEqual(6)
+  await expect(page.getByTestId('composer-stop')).toBeVisible()
   await page.getByTestId('composer-stop').click()
   await expect(page.getByTestId('composer-send')).toBeVisible({ timeout: 60_000 })
   console.log('AFTER STOP:', JSON.stringify((await last.innerText()).slice(-120)))

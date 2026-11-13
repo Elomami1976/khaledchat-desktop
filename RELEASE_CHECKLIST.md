@@ -2,7 +2,7 @@
 
 ## Release blockers (open)
 
-1. **Performance on low-end CPUs.** The real-model test passed (download, verify, load, stream, stop, persist) on an i5-2450M, but the first reply took 10–12 min (see TESTING.md). Consider a lighter prompt or a simple-chat mode for such hardware, and test on a newer CPU and a GPU.
+1. **Performance on low-end CPUs.** The real-model test passes on an i5-2450M. In Full mode the first reply takes 10–12 min. Simple chat mode (Auto on CPU-only PCs) brings it to about 1–2.5 min. Still to test on a newer CPU and a GPU, where Full mode should be usable.
    - check load, streaming, stop, switching and unloading on CPU-only Windows (this PC's CPU has AVX but not AVX2);
    - check the same with a GPU if one is available.
 2. **Code tools on Windows aren't isolated.** Model-written Python runs at low integrity: writes are limited, but reads and network are not.

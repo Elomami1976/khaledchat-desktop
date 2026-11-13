@@ -9,7 +9,7 @@ import { LOCALES, msg, t } from '../../../shared/i18n'
 import { applyLanguage } from '../i18n'
 import { FilesSettings, Heading, ModelSettings, PrivacySettings, Row, Segmented } from '../screens/Settings'
 import { Plugins, type Tab } from '../screens/Plugins'
-import { AboutSettings, FirstNameRow, HardwareSettings } from './SettingsExtra'
+import { AboutSettings, ChatModeRow, FirstNameRow, HardwareSettings } from './SettingsExtra'
 
 export type Section = 'general' | 'model' | 'hardware' | 'privacy' | 'files' | 'about' | Tab
 
@@ -42,6 +42,7 @@ function GeneralSettings() {
     <>
       <Heading>{t('You')}</Heading>
       <FirstNameRow />
+      <ChatModeRow />
       <Heading>{t('Language')}</Heading>
       <Row label={t('Language')} help={t("Khaled Chat's menus and buttons. Khaled Chat answers in the language you write in.")}>
         <select data-testid="settings-language" value={s?.language ?? ''} onChange={(e) => pickLanguage(e.target.value)}

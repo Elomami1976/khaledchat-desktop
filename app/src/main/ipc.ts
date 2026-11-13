@@ -26,7 +26,7 @@ import { saveSkillTool, useSkillTool } from './plugins/skillTools'
 import type { NewSkill } from '../shared/plugins'
 import { AlreadyHereError, copyIn, isInside, isRunnable, nextChatDir, sizeOf, TooBigError, validFilesDir } from './workspace'
 import { isEffort } from '../shared/effort'
-import { cleanFirstName, effortOf, loadSettings, localeOf, updateSettings, webAccessOn } from './settings'
+import { cleanFirstName, isChatMode, simpleChatOn, effortOf, loadSettings, localeOf, updateSettings, webAccessOn } from './settings'
 import { isLocale, setLanguage, t } from '../shared/i18n'
 import { shownTitle, tidyTitle } from '../shared/replies'
 import { chatFileName, chatMarkdown } from '../shared/chatExport'
@@ -68,6 +68,8 @@ export type IpcDeps = {
   isOwnPage?(url: string): boolean
   /** Khaled Chat: Settings → Hardware */
   systemInfo?(): Promise<SystemInfo>
+  /** Khaled Chat: true when the engine found no GPU acceleration (simple chat's Auto); undefined before the probe */
+  cpuOnly?(): boolean | undefined
 }
 
 export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise<void> } {
@@ -87,7 +89,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
   const userSettings = (): UserSettings => {
     const s = loadSettings(d.paths.settings)
     const system = systemLocale()
-    return { firstName: s.firstName ?? '', webAccess: webAccessOn(s), filesDir: d.filesDir(), theme: s.theme ?? 'system', effort: effortOf(s), language: isLocale(s.language) ? s.language : '', locale: localeOf(s, system), systemLocale: system }
+    return { firstName: s.firstName ?? '', chatMode: s.chatMode ?? 'auto', simpleChat: simpleChatOn(s, d.cpuOnly?.()), webAccess: webAccessOn(s), filesDir: d.filesDir(), theme: s.theme ?? 'system', effort: effortOf(s), language: isLocale(s.language) ? s.language : '', locale: localeOf(s, system), systemLocale: system }
   }
   d.setup.onState((s) => send('setup:state', s))
   d.vision?.onState((s) => send('vision:state', s))
@@ -303,6 +305,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     skills: { list: () => d.plugins.skills(), find: (n: string) => d.plugins.findSkill(n) },
     prompts: (offered: string[]) => d.plugins.prompts(offered),
     webAccess: () => webAccessOn(loadSettings(d.paths.settings)),
+    simple: () => simpleChatOn(loadSettings(d.paths.settings), d.cpuOnly?.()),
     effort: () => effortOf(loadSettings(d.paths.settings)),
   }
 
@@ -395,6 +398,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     const patch = plainObject(rawPatch, 'settings') as Partial<UserSettings>
     updateSettings(d.paths.settings, {
       ...(patch.firstName !== undefined ? { firstName: cleanFirstName(patch.firstName) } : {}),
+      ...(isChatMode(patch.chatMode) ? { chatMode: patch.chatMode } : {}),
       ...(patch.webAccess !== undefined ? { webAccess: !!patch.webAccess } : {}),
       ...(patch.filesDir && validFilesDir(String(patch.filesDir)) ? { filesDir: String(patch.filesDir) } : {}),
       ...(patch.theme !== undefined ? { theme: patch.theme === 'light' || patch.theme === 'dark' ? patch.theme : undefined } : {}),
@@ -402,7 +406,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
       ...(patch.language !== undefined ? { language: isLocale(patch.language) ? patch.language : undefined } : {}),
     })
     // gpt-oss reads its reasoning level first: read the chat ahead again with the new one
-    if (patch.effort !== undefined) void warm()
+    if (patch.effort !== undefined || patch.chatMode !== undefined) void warm()
     // Khaled Chat's own words (step names, dialogs) and the language it's told to answer in
     if (patch.language !== undefined) { setLanguage(localeOf(loadSettings(d.paths.settings), systemLocale())); void warm() }
     // the whole app, system dialogs included, follows it

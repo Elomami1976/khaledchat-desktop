@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { SystemInfo } from '../../../shared/types'
 import { hob } from '../api'
 import { t } from '../../../shared/i18n'
-import { Heading, Row } from '../screens/Settings'
+import { Heading, Row, Segmented } from '../screens/Settings'
 import { BrandLogo } from './Welcome'
 import { button } from './ui'
 
@@ -80,5 +80,21 @@ export function AboutSettings() {
       <p className="mt-2 text-meta text-muted">{t('Notices for the open-source components it includes are in the THIRD_PARTY_NOTICES file next to the app.')}</p>
       <div className="mt-4"><a href={`${REPOSITORY}/blob/main/THIRD_PARTY_NOTICES.md`} target="_blank" rel="noreferrer" className={button.secondary}>{t('Open-source notices')}</a></div>
     </>
+  )
+}
+
+/** simple chat: short prompt, no tools, quick thinking. Auto turns it on when there's no graphics acceleration */
+export function ChatModeRow() {
+  const [mode, setMode] = useState<'auto' | 'simple' | 'full'>('auto')
+  const [on, setOn] = useState(false)
+  useEffect(() => { void hob.settings.get().then((s) => { setMode(s.chatMode); setOn(s.simpleChat) }) }, [])
+  const pick = (chatMode: 'auto' | 'simple' | 'full') => void hob.settings.set({ chatMode }).then((s) => { setMode(s.chatMode); setOn(s.simpleChat) })
+  return (
+    <Row testId="settings-chat-mode" label={t('Chat mode')}
+      help={`${t('Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.')} ${on ? t('Simple chat is on now.') : t('Full chat is on now.')}`}>
+      <Segmented<'auto' | 'simple' | 'full'> testId="chat-mode" value={mode} onChange={pick} options={[
+        { id: 'auto', label: t('Auto') }, { id: 'simple', label: t('Simple') }, { id: 'full', label: t('Full') },
+      ]} />
+    </Row>
   )
 }

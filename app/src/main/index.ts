@@ -305,6 +305,7 @@ app.whenReady().then(() => {
     onChange: (list) => win?.webContents.send('components:changed', list),
   })
   const ipc = registerIpc({ win: () => win, setup, store, python, paths, filesDir, allowed, search, speech: FAKE ? undefined : speech, plugins, vision, accounts, notices, removeHob, fake: FAKE, components, isOwnPage,
+    cpuOnly: () => (FAKE ? false : gpuBackend === undefined ? undefined : gpuBackend === 'cpu'),
     systemInfo: async () => ({
       os: process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux', osVersion: os.release(), arch: process.arch,
       cpuModel: os.cpus()[0]?.model?.trim() ?? 'unknown', logicalCores: os.cpus().length,

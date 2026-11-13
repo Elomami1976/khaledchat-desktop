@@ -41,7 +41,7 @@ export type StoredMessage = {
 
 export type Theme = 'system' | 'light' | 'dark'
 /** language: picked in Settings, '' = the computer's. locale: the one in use. systemLocale: the computer's */
-export type UserSettings = { firstName: string; webAccess: boolean; filesDir: string; theme: Theme; effort: Effort; language: string; locale: string; systemLocale: string }
+export type UserSettings = { firstName: string; chatMode: 'auto' | 'simple' | 'full'; simpleChat: boolean; webAccess: boolean; filesDir: string; theme: Theme; effort: Effort; language: string; locale: string; systemLocale: string }
 export type ModelRow = ModelOption & { downloaded: boolean; active: boolean }
 
 /** a reply still being written: its chat may be closed and opened again meanwhile */

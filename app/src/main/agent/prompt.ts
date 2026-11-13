@@ -66,6 +66,12 @@ export function chatNote(o: { files: string[]; grants: string[]; project?: Promp
 /** the chat note at the end of a message (before the time), for code that wants what the user wrote */
 export const CHAT_NOTE = /\n*\[This chat's folder [\s\S]*\]$/
 
+/**
+ * Khaled Chat: the system prompt in simple chat mode (no tools). A few dozen tokens instead of thousands, so the
+ * first reply starts quickly on computers without graphics acceleration.
+ */
+export const SIMPLE_SYSTEM_PROMPT = 'You are Khaled Chat, a helpful AI assistant that runs privately on the user\'s own computer, with no internet access. Answer clearly and concisely, in the language the user writes in. Use Markdown when it helps. If you are not sure, say so.'
+
 export function systemPrompt(o: {
   /** where chats keep their files: each chat has a folder in it */
   chatsDir?: string

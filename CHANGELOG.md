@@ -21,6 +21,7 @@ First Khaled Chat build, based on Hob 0.2.6 (`hob-baseline-0.2.6`).
 
 ### Brand and interface
 - Khaled Chat name, approved logo and icon, monochrome palette.
+- Simple chat mode: short prompt, no tools, quick thinking. Auto turns it on for PCs without graphics acceleration; the first reply came about 5–10× faster on the test PC.
 - Welcome greeting by local time, with an optional first name.
 - New Settings sections: Hardware, About (version, website, source, licenses, Hob attribution) and Optional components.
 - Mac-only email and calendar are no longer suggested on Windows.

@@ -4,7 +4,13 @@ import { isLocale } from '../shared/i18n'
 
 /** pendingModelId: a model download that was still in progress when Khaled Chat last ran. downloadsDir: where models go, when not in app data */
 /** theme: light or dark regardless of the system; follows the system when left out. effort: how long Khaled Chat thinks. language: the interface's, the computer's when left out */
-export type Settings = { activeModelId?: string; pendingModelId?: string; webAccess?: boolean; filesDir?: string; downloadsDir?: string; theme?: 'light' | 'dark'; effort?: Effort; language?: string; firstName?: string }
+export type Settings = { activeModelId?: string; pendingModelId?: string; webAccess?: boolean; filesDir?: string; downloadsDir?: string; theme?: 'light' | 'dark'; effort?: Effort; language?: string; firstName?: string; chatMode?: ChatMode }
+
+/** Khaled Chat: auto = simple when the engine found no graphics acceleration; simple; full (tools and files) */
+export type ChatMode = 'auto' | 'simple' | 'full'
+export const isChatMode = (v: unknown): v is ChatMode => v === 'auto' || v === 'simple' || v === 'full'
+/** is simple chat on? cpuOnly: the engine's probe found no GPU acceleration (undefined: not probed yet) */
+export const simpleChatOn = (s: { chatMode?: ChatMode }, cpuOnly: boolean | undefined) => (s.chatMode ?? 'auto') === 'simple' || ((s.chatMode ?? 'auto') === 'auto' && cpuOnly === true)
 
 /** Khaled Chat: the optional first name used in the greeting. Trimmed, one line, at most 40 characters; '' removes it. */
 export function cleanFirstName(v: unknown): string | undefined {

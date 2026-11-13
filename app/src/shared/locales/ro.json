@@ -843,5 +843,11 @@
   "Your AI. Your Device. Your Privacy.": "Your AI. Your Device. Your Privacy.",
   "Your first name": "Your first name",
   "{name}, {count} threads": "{name}, {count} threads",
-  "{total} total, {free} free now": "{total} total, {free} free now"
+  "{total} total, {free} free now": "{total} total, {free} free now",
+  "Chat mode": "Chat mode",
+  "Full": "Full",
+  "Full chat is on now.": "Full chat is on now.",
+  "Simple": "Simple",
+  "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.": "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.",
+  "Simple chat is on now.": "Simple chat is on now."
 }
