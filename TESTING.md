@@ -65,10 +65,10 @@ Settings → General → **Chat mode** (Auto, Simple or Full). Auto turns Simple
 
 | Measure on this PC | Full mode | Simple mode |
 |---|---|---|
-| First reply () | 10–12 min (2 runs) | **73 s and 148 s** (2 runs) |
+| First reply ("pong") | 10–12 min (2 runs) | **73 s and 148 s** (2 runs) |
 | Full real-engine spec (reply, streaming, stop, restart) | not completed | **passed** (15.7 min including the app's two start-ups) |
 
-**Earlier conclusion (Full mode):** local inference works end to end on a 2011 dual-core CPU without AVX2, but it is too slow to be pleasant there. 8 GB machines with a newer CPU (AVX2) or a GPU should be much faster; that is not measured. The agent's long system prompt dominates the first reply. A shorter prompt or a "simple chat" mode for low-end hardware is a recommended follow-up.
+**Earlier conclusion (Full mode):** local inference works end to end on a 2011 dual-core CPU without AVX2, but it is too slow to be pleasant there. 8 GB machines with a newer CPU (AVX2) or a GPU should be much faster; that is not measured. The agent's long system prompt dominates the first reply. Simple chat mode (above) addresses this.
 
 ## Not tested
 
