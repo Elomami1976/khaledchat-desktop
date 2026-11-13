@@ -144,9 +144,9 @@ test('home ideas: three under the composer; the file ones ask for a file, then s
   await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
   await expect(page.getByTestId('suggestion')).toHaveCount(3)
-  // until email and calendar are connected, that idea takes the second file idea's place
-  await expect(page.locator('[data-testid="suggestion"][data-file="true"]')).toHaveCount(1)
-  await expect(page.locator('[data-testid="suggestion"][data-connect="true"]')).toHaveCount(1)
+  // Khaled Chat: no email and calendar idea on Windows (Mac-only, and no online accounts): two file ideas instead
+  await expect(page.locator('[data-testid="suggestion"][data-file="true"]')).toHaveCount(process.platform === 'darwin' ? 1 : 2)
+  await expect(page.locator('[data-testid="suggestion"][data-connect="true"]')).toHaveCount(process.platform === 'darwin' ? 1 : 0)
   await expect(page.locator('[data-testid="suggestion"][data-file="false"][data-connect="false"]')).toHaveCount(1)
 
   // cancelling the file picker does nothing

@@ -94,8 +94,14 @@ win:
       arch: [x64]
   icon: build/icon.png
 nsis:
-  oneClick: true
+  oneClick: false
   perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Khaled Chat
+  uninstallDisplayName: Khaled Chat
+  license: ../LICENSE
   # Khaled Chat: uninstalling keeps chats and models (Settings → Remove deletes them); updates keep them
   deleteAppDataOnUninstall: false
 linux:
