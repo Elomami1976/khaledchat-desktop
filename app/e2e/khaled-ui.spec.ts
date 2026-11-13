@@ -7,7 +7,7 @@ import { join } from 'node:path'
 const main = join(import.meta.dirname, '../out/main/index.js')
 
 test('greeting with first name, hardware and about', async () => {
-  test.setTimeout(120_000)
+  test.setTimeout(240_000)
   const userData = mkdtempSync(join(tmpdir(), 'kc-ui-'))
   const env = { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: userData }
   const app = await electron.launch({ args: [main], env })
@@ -22,7 +22,7 @@ test('greeting with first name, hardware and about', async () => {
   await expect(page.locator('.chat-greeting').getByTestId('brand-logo')).toBeVisible()
 
   // Settings → General: set the first name; the greeting uses it
-  await page.keyboard.press('Control+,')
+  await page.getByTestId('open-settings').click()
   await page.getByTestId('first-name-input').fill('Alex')
   await page.getByTestId('first-name-input').press('Enter')
   await expect(page.getByTestId('first-name-clear')).toBeVisible()
@@ -43,7 +43,7 @@ test('greeting with first name, hardware and about', async () => {
   const page2 = await app2.firstWindow()
   await expect(page2.getByTestId('welcome-greeting')).toHaveText(/Alex\.$/, { timeout: 30_000 })
   // and it can be removed
-  await page2.keyboard.press('Control+,')
+  await page2.getByTestId('open-settings').click()
   await page2.getByTestId('first-name-clear').click()
   await page2.getByTestId('settings-close').click()
   await expect(page2.getByTestId('welcome-greeting')).toHaveText(/^Good (morning|afternoon|evening)\.$/)

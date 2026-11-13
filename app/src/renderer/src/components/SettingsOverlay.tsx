@@ -94,7 +94,7 @@ export function SettingsOverlay({ section, onSection, onClose, opened, onAllChat
     <div data-scrim className="scrim fade-in fixed inset-0 z-40 flex flex-col" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="drag h-12 shrink-0" />
       <div className="flex min-h-0 flex-1 px-4 pb-4 sm:px-6 sm:pb-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div data-testid="settings" role="dialog" aria-label={t('Settings')} className="pop mx-auto flex h-full w-full max-w-5xl overflow-hidden rounded-[16px] border border-line bg-paper shadow-2xl">
+      <div data-testid="settings" role="dialog" aria-label={t('Settings')} className="pop relative mx-auto flex h-full w-full max-w-5xl overflow-hidden rounded-[16px] border border-line bg-paper shadow-2xl">
         <nav className="flex w-56 shrink-0 flex-col gap-4 overflow-y-auto border-e border-line bg-sidebar p-3">
           <label className="flex items-center gap-2 rounded-control border border-line bg-surface px-2.5 py-1.5 text-ui">
             <Search size={14} className="text-muted" />
@@ -116,8 +116,9 @@ export function SettingsOverlay({ section, onSection, onClose, opened, onAllChat
             )
           })}
         </nav>
+        {/* outside the scrolling area: a scrollbar never moves it */}
+        <button data-testid="settings-close" aria-label={t('Close settings')} title={t('Close (Esc)')} onClick={onClose} className="no-drag absolute end-4 top-4 z-10 rounded-control p-1.5 text-muted hover:bg-line/70 hover:text-ink"><X size={16} /></button>
         <div className="relative min-w-0 flex-1 overflow-y-auto">
-          <button data-testid="settings-close" aria-label={t('Close settings')} title={t('Close (Esc)')} onClick={onClose} className="no-drag absolute end-4 top-4 z-10 rounded-control p-1.5 text-muted hover:bg-line/70 hover:text-ink"><X size={16} /></button>
           <div key={section} className="fade-in mx-auto max-w-2xl px-8 pt-8 pb-12">
             {section === 'general' && <GeneralSettings />}
             {section === 'model' && <ModelSettings />}

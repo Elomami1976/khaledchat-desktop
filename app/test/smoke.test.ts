@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { Journal } from '../src/main/agent/journal'
 import type { TurnCtx } from '../src/main/agent/tool'
 import { realDeps } from '../src/main/downloader'
+import { DownloadConsent } from '../src/main/consent'
 import { PY_BUILDS, PythonRuntime, SEARXNG_SKIP, pyUrl, realRuntimeDeps } from '../src/main/python/runtime'
 import { SEARXNG_SHA256, SEARXNG_URL, SearxngServer } from '../src/main/search/searxng'
 import { tarCmd } from '../src/main/tar'
@@ -24,11 +25,14 @@ import { VisionServer } from '../src/main/vision/server'
 const on = process.env.HOB_SMOKE === '1'
 const root = mkdtempSync(join(tmpdir(), 'hob-smoke-'))
 const chatDir = join(root, 'chat'); mkdirSync(chatDir)
-const python = new PythonRuntime(join(root, 'python'), realRuntimeDeps)
+// Khaled Chat: running this suite (HOB_SMOKE=1) is the person's OK for its downloads, as clicking Download would be
+class ConfirmedConsent extends DownloadConsent { override has() { return true } override assert() {} }
+const confirmed = new ConfirmedConsent()
+const python = new PythonRuntime(join(root, 'python'), realRuntimeDeps, undefined, confirmed)
 const searx = new SearxngServer({ python: python.python, runtimeRoot: python.dir, settingsDir: root })
 const installer = new VisionInstaller(join(root, 'vision'), {
   platformKey: `${process.platform}-${process.arch}`, choose: async () => VISION_MODELS['2b'],
-  download: realDeps, fetchFile: realRuntimeDeps.fetchFile, exec: realRuntimeDeps.exec,
+  download: realDeps, fetchFile: realRuntimeDeps.fetchFile, exec: realRuntimeDeps.exec, consent: confirmed,
 })
 const server = new VisionServer({
   command: async () => ({ cmd: await installer.serverBinary() }),

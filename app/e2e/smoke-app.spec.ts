@@ -25,6 +25,19 @@ test('the real tools work in the app', async () => {
     // chat opens; the status may already show the image model downloading
     await expect(page.getByTestId('composer-input')).toBeVisible({ timeout: 60_000 })
 
+    // Khaled Chat: nothing installs itself. Install the optional parts as a person would (Settings → Model →
+    // Optional components, each confirmed in the download dialog), and turn on Web access for the search
+    type Hob = { components: { list(): Promise<{ id: string; installed: boolean; installing: boolean }[]> }; settings: { set(p: unknown): Promise<unknown> } }
+    await page.evaluate(() => (window as unknown as { hob: Hob }).hob.settings.set({ webAccess: true }))
+    await page.getByTestId('open-settings').click()
+    await page.getByTestId('settings-nav-model').click()
+    for (const id of ['python', 'search', 'vision']) {
+      await page.getByTestId(`component-install-${id}`).click()
+      await page.getByTestId('download-confirm-ok').click()
+      await expect.poll(async () => (await page.evaluate(() => (window as unknown as { hob: Hob }).hob.components.list())).find((c) => c.id === id)?.installed, { timeout: 30 * 60_000, intervals: [5000] }).toBe(true)
+    }
+    await page.getByTestId('settings-close').click()
+
     // Python, in its sandbox: sets itself up on first use, then makes a picture in the chat folder
     expect(await call(page, [['run_python', { code: 'from PIL import Image\nImage.new("RGB", (64, 64), (220, 20, 20)).save("red.png")\nprint(6 * 7)' }]])).toContain('42')
 

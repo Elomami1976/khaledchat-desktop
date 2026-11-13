@@ -22,10 +22,12 @@ test('built-in plugins are listed and can be turned off; Web search is the Web a
   // the old examples are gone
   for (const id of ['weather', 'trip-planner', 'study-buddy', 'money']) await expect(page.locator(`[data-testid=plugin][data-id=${id}]`)).toHaveCount(0)
   const web = page.locator('[data-testid=plugin][data-id=web]')
-  await web.getByTestId('plugin-toggle').click()
+  // Khaled Chat: Web access starts off; the plugin switch and the Privacy switch are the same setting
   await expect(web.getByTestId('plugin-toggle')).toHaveAttribute('aria-checked', 'false')
+  await web.getByTestId('plugin-toggle').click()
+  await expect(web.getByTestId('plugin-toggle')).toHaveAttribute('aria-checked', 'true')
   await page.getByTestId('settings-nav-privacy').click()
-  await expect(page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'false')
+  await expect(page.getByTestId('web-toggle')).toHaveAttribute('aria-checked', 'true')
   await app.close()
 })
 
