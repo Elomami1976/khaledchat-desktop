@@ -7,7 +7,7 @@ import { Heading, Row, Segmented } from '../screens/Settings'
 import { BrandLogo } from './Welcome'
 import { button } from './ui'
 
-export const WEBSITE = 'https://khaledchat.com'
+export const WEBSITE = 'https://khaledchat.io'
 export const REPOSITORY = 'https://github.com/Elomami1976/khaledchat-desktop'
 export const UPSTREAM = 'https://github.com/FrigadeHQ/hob'
 
@@ -69,7 +69,7 @@ export function AboutSettings() {
       <Heading>{t('About')}</Heading>
       <div data-testid="about">
         <Row label={t('Version')}><span data-testid="about-version" className="text-ui text-ink-soft">{info ? `${info.appVersion} (Electron ${info.electron})` : '…'}</span></Row>
-        <Row label={t('Website')}>{link(WEBSITE, 'khaledchat.com', 'about-website')}</Row>
+        <Row label={t('Website')}>{link(WEBSITE, 'khaledchat.io', 'about-website')}</Row>
         <Row label={t('Source code')}>{link(REPOSITORY, 'GitHub', 'about-repo')}</Row>
       </div>
       <Heading>{t('Licenses')}</Heading>

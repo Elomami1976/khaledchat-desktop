@@ -52,9 +52,9 @@
   "description": "Your AI. Your Device. Your Privacy. Local, private AI chat for Windows.",
   "author": {
     "name": "Khaled Chat contributors",
-    "url": "https://khaledchat.com"
+    "url": "https://khaledchat.io"
   },
   "license": "MIT",
   "repository": "github:FrigadeHQ/hob",
-  "homepage": "https://khaledchat.com"
+  "homepage": "https://khaledchat.io"
 }

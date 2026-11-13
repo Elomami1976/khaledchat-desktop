@@ -4,7 +4,7 @@
 
 <p align="center"><b>Your AI. Your Device. Your Privacy.</b><br>
 Local, private AI chat for Windows. Free and open source.<br>
-<a href="https://khaledchat.com">khaledchat.com</a></p>
+<a href="https://khaledchat.io">khaledchat.io</a></p>
 
 ## What it is
 
