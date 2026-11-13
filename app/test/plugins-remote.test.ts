@@ -13,7 +13,7 @@ let reg: PluginRegistry | undefined
 let fx: Awaited<ReturnType<typeof startHttpFixture>> | undefined
 afterEach(async () => { reg?.close(); await fx?.close(); reg = undefined; fx = undefined })
 
-/** follows the sign-in page's redirect back to Hob, like the user's browser would */
+/** follows the sign-in page's redirect back to Khaled Chat, like the user's browser would */
 const browser = (opened: string[]) => async (url: string) => {
   opened.push(url)
   const r = await fetch(url, { redirect: 'manual' })
@@ -92,7 +92,7 @@ describe('MCP bundles (.mcpb)', () => {
     expect(c).toEqual({ command: '/b/bin', args: ['--dirs', '/a', '/c', 'x=', 'v'], env: { K: 'v', U: '${UNKNOWN}' } })
   })
 
-  it('installs a .mcpb, waits for required settings, then runs on Hob’s own Node with them', async () => {
+  it('installs a .mcpb, waits for required settings, then runs on Khaled Chat’s own Node with them', async () => {
     const w = world()
     expect(w.r.install(bundle(w.root))).toEqual({ ok: true, id: 'notes-bundle' })
     const info = w.r.list().find((p) => p.id === 'notes-bundle')!

@@ -7,7 +7,7 @@ import { seeImage } from './vision'
 import { t } from '../../shared/i18n'
 
 /**
- * PDFs, including scanned ones: Hob's PDF helper (native/hob-pdf, Apple PDFKit + Vision) reads the text,
+ * PDFs, including scanned ones: Khaled Chat's PDF helper (native/hob-pdf, Apple PDFKit + Vision) reads the text,
  * recognizes it on scanned pages, finds the blanks of a form, and writes answers onto a copy.
  */
 export type PdfLine = { t: string; x: number; y: number; w: number; h: number }
@@ -77,7 +77,7 @@ export function runHelper(args: string[], signal?: AbortSignal): Promise<PdfRead
     if (process.platform !== 'darwin' || !existsSync(pdfHelper())) return reject(new Error("Reading PDFs this way isn't available on this computer yet."))
     execFile(pdfHelper(), args, { maxBuffer: 64 * 1024 * 1024, timeout: 180_000, signal }, (err, stdout, stderr) => {
       if (err) return reject(new Error(stderr.trim() || (signal?.aborted ? 'Stopped by the user.' : err.message)))
-      try { resolve(JSON.parse(stdout)) } catch { reject(new Error('The PDF helper gave an answer Hob could not read.')) }
+      try { resolve(JSON.parse(stdout)) } catch { reject(new Error('The PDF helper gave an answer Khaled Chat could not read.')) }
     })
   })
 }
@@ -230,7 +230,7 @@ export const readPdf: Tool<{ path: string; pages?: string }> = {
     // a form keeps the recognized text: filling it needs where each word is on the page
     const seen = isForm ? new Map<number, string>() : await seePictures(path, pages, ctx)
     const recognized = pages.some((p) => p.ocr && !seen.has(p.n))
-    const head = `File: ${path}\n${d.pageCount} page${d.pageCount === 1 ? '' : 's'}${seen.size ? `, ${seen.size === 1 ? 'a page that is a picture, read' : 'pages that are pictures, read'} by Hob's image model (tables, math and layout kept)` : ''}${recognized ? `${seen.size ? '; other' : ','} scanned pages: text was recognized from the page images; check names and numbers, and tables or math may be out of order` : ''}${d.pageCount > MAX_PAGES ? `. Only the first ${MAX_PAGES} pages were read.` : ''}`
+    const head = `File: ${path}\n${d.pageCount} page${d.pageCount === 1 ? '' : 's'}${seen.size ? `, ${seen.size === 1 ? 'a page that is a picture, read' : 'pages that are pictures, read'} by Khaled Chat's image model (tables, math and layout kept)` : ''}${recognized ? `${seen.size ? '; other' : ','} scanned pages: text was recognized from the page images; check names and numbers, and tables or math may be out of order` : ''}${d.pageCount > MAX_PAGES ? `. Only the first ${MAX_PAGES} pages were read.` : ''}`
     const parts = [head]
     // the form first: it's what the task is about, and it must never be cut off by long pages of text
     if (fields.length) {
@@ -246,7 +246,7 @@ export const readPdf: Tool<{ path: string; pages?: string }> = {
       const words = pageText(p)
       // both readings of a picture page: the image model keeps tables and math; recognition gets every word
       let t = seen.has(p.n)
-        ? `The page as Hob's image model reads it (tables, math and layout kept):\n${seen.get(p.n)}${words ? `\n\nWords recognized on the page (exact, but tables and math may be out of order):\n${words}` : ''}`
+        ? `The page as Khaled Chat's image model reads it (tables, math and layout kept):\n${seen.get(p.n)}${words ? `\n\nWords recognized on the page (exact, but tables and math may be out of order):\n${words}` : ''}`
         : words || '(no text on this page)'
       // (no "read the rest" hint here: the blanks above are what matter, and the hint made models read every page)
       if (isForm && !want && !formPages.has(p.n) && t.length > 500) t = `${t.slice(0, 500)}… (excerpt)`
@@ -282,7 +282,7 @@ export function spreadLines(answers: Record<string, string>, blanks: { id: strin
 
 const outName = (ctx: TurnCtx, src: string, wanted?: string) => {
   const stem = wanted ? basename(wanted).replace(/\.pdf$/i, '') : `${basename(src).replace(/\.pdf$/i, '').replace(/ \(filled\)$/, '')} (filled)`
-  // filling again (to fix an answer) replaces Hob's earlier filled copy; anything else gets a new name
+  // filling again (to fix an answer) replaces Khaled Chat's earlier filled copy; anything else gets a new name
   const p = join(ctx.chatDir, `${stem}.pdf`)
   if (!existsSync(p) || / \(filled\)\.pdf$/.test(p)) return p
   let q = p

@@ -108,7 +108,7 @@ function world() {
     }
     return new Response('{}', { status: 404 })
   }) as typeof fetch
-  // the "browser": follows the sign-in page straight back to Hob with a code
+  // the "browser": follows the sign-in page straight back to Khaled Chat with a code
   const open = async (url: string) => {
     const u = new URL(url)
     const back = new URL(u.searchParams.get('redirect_uri')!)

@@ -174,7 +174,7 @@ async function chat(id: number, req: { messages: ChatMessage[]; tools: ToolSpec[
   }
 }
 
-/** Gemma 4 writes its tool calls its own way, and Hob reads them (gemmaLoop.ts) */
+/** Gemma 4 writes its tool calls its own way, and Khaled Chat reads them (gemmaLoop.ts) */
 const gemmaCalls = (m: LlamaModel | undefined) => m?.fileInfo.metadata.general.architecture === 'gemma4'
 
 /**

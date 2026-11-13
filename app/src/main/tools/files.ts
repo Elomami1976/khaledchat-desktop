@@ -82,7 +82,7 @@ export const readFile: Tool<{ path: string }> = {
       return { text: `${head}${lines} lines\n---\n${all.slice(0, PREVIEW_CHARS)}${cut}` }
     }
     if (ext === '.pdf') {
-      // Hob's PDF reader also reads scanned pages and lists a form's blanks
+      // Khaled Chat's PDF reader also reads scanned pages and lists a form's blanks
       try {
         const r = await readPdf.run({ path: p }, ctx)
         if (!r.failed) return { text: r.text }
@@ -194,7 +194,7 @@ export const moveFiles: Tool<MoveArgs> = {
   async run(a, ctx) {
     if (a.fileError) return { text: a.fileError, failed: true, title: t("Couldn't read the list of files") }
     const moves = movesOf(a).map((m) => ({ from: resolvePath(ctx, m.from), to: resolvePath(ctx, m.to) }))
-    if (!moves.length) return { text: 'No files given. Pass file: "moves.json" (a JSON list of {"from", "to"} full paths that run_python saved in the chat folder), or moves as a list of {"from", "to"} paths.', failed: true, title: t("Couldn't move files: none given"), detail: t('Hob got: {args}', { args: JSON.stringify(a).slice(0, 500) }) }
+    if (!moves.length) return { text: 'No files given. Pass file: "moves.json" (a JSON list of {"from", "to"} full paths that run_python saved in the chat folder), or moves as a list of {"from", "to"} paths.', failed: true, title: t("Couldn't move files: none given"), detail: t('Khaled Chat got: {args}', { args: JSON.stringify(a).slice(0, 500) }) }
     if (moves.length > MAX_MOVES) return { text: `Too many at once (${moves.length}). Do at most ${MAX_MOVES} per call.`, failed: true, title: t("Couldn't move {count} files: too many at once", { count: moves.length }) }
     // check everything first, so a bad name doesn't leave the folder half renamed
     const done = moves.filter((m) => existsSync(m.to) && !lexists(m.from))

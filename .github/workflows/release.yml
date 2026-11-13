@@ -9,9 +9,8 @@
 #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   for notarization
 name: Release
 
+# Khaled Chat: manual only. Pushing a tag (including Hob's inherited v0.2.x tags) must never publish a release.
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:

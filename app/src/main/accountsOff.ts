@@ -1,5 +1,5 @@
 /**
- * Khaled Chat: no Google or Microsoft sign-in. Hob's calendar-and-email accounts feature needs an OAuth app
+ * Khaled Chat: no Google or Microsoft sign-in. Khaled Chat's calendar-and-email accounts feature needs an OAuth app
  * registration (client ID) owned by whoever ships the app; Khaled Chat has none and must never require an account.
  * This stands in for Accounts: nothing is offered, nothing is read from a saved accounts file, nothing is
  * refreshed, and signing in is refused. The Accounts code stays in the tree, unused, to keep upstream merges simple.

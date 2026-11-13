@@ -5,14 +5,14 @@ import { fileManager } from '../../../shared/platform'
 import { t } from '../../../shared/i18n'
 import { PdfView } from './PdfView'
 
-/** what Hob shows itself; anything else opens in its own app */
+/** what Khaled Chat shows itself; anything else opens in its own app */
 const IMAGE = /\.(png|jpe?g|gif|webp|svg|bmp)$/i
 const PDF = /\.pdf$/i
 export const canPreview = (path: string) => IMAGE.test(path) || PDF.test(path)
 const name = (p: string) => p.split(/[\\/]/).pop() ?? p
 
 let show: ((path: string) => void) | undefined
-/** a photo or PDF, full window, inside Hob; other files open in their app */
+/** a photo or PDF, full window, inside Khaled Chat; other files open in their app */
 export function previewFile(path: string) {
   if (canPreview(path) && show) show(path)
   else void hob.files.open(path)

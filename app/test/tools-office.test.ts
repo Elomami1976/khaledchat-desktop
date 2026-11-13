@@ -8,12 +8,12 @@ import type { TurnCtx } from '../src/main/agent/tool'
 import { PY_PACKAGES, type PythonRuntime } from '../src/main/python/runtime'
 import { readFile } from '../src/main/tools/files'
 
-// Hob's own Python, when it's installed on this machine with the current packages
-const root = join(homedir(), 'Library', 'Application Support', 'Hob', 'python')
+// Khaled Chat's own Python, when it's installed on this machine with the current packages
+const root = join(homedir(), 'Library', 'Application Support', 'Khaled Chat', 'python')
 const python = join(root, 'python', 'bin', 'python3')
 const hasPptx = () => { try { execFileSync(python, ['-I', '-c', 'import pptx']); return true } catch { return false } }
 
-it('Word, Excel and PowerPoint work out of the box: their packages come with Hob', () => {
+it('Word, Excel and PowerPoint work out of the box: their packages come with Khaled Chat', () => {
   expect(PY_PACKAGES).toEqual(expect.arrayContaining(['python-docx==1.2.0', 'openpyxl==3.1.5', 'python-pptx==1.0.2', 'XlsxWriter==3.2.9']))
 })
 

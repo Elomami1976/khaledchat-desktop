@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ModelOption, SetupState } from '../../../shared/types'
 import { hob } from '../api'
 import { ChevronRight, LoaderCircle } from 'lucide-react'
-import { Mascot } from '../components/Mascot'
+import { BrandLogo } from '../components/Welcome'
 import { Dialog } from '../components/ui'
 import { ModelPicker } from '../components/ModelPicker'
 import { confirmDownload, DownloadConfirmHost } from '../components/DownloadConfirm'
@@ -34,7 +34,7 @@ function DownloadDetails({ state, onClose }: { state: Extract<SetupState, { phas
 }
 
 /** First launch: the final line stays until the computer checks finish. */
-const FIRST_RUN = [msg('Starting Hob…'), msg('Checking your computer…'), msg('Reviewing available AI models…'), msg('Finding the best fit for your computer…')]
+const FIRST_RUN = [msg('Starting Khaled Chat…'), msg('Checking your computer…'), msg('Reviewing available AI models…'), msg('Finding the best fit for your computer…')]
 const EVERYDAY_START = [msg('Waking up…'), msg('Getting ready…'), msg('Finding my focus…'), msg('Just a moment…')]
 function ProbingLine({ firstRun }: { firstRun: boolean }) {
   const lines = firstRun ? FIRST_RUN : EVERYDAY_START
@@ -71,14 +71,14 @@ export function Onboarding({ state }: { state: SetupState }) {
       <div className="drag h-10 shrink-0" />
       <div className="onboarding-screen">
         <div className="onboarding-content">
-          {/* One mounted Hob carries the transition from checking to setup. */}
-          <div className="onboarding-mascot"><Mascot size={72} alive playful /></div>
+          {/* One mounted Khaled Chat carries the transition from checking to setup. */}
+          <div className="onboarding-mascot"><BrandLogo height={72} /></div>
           <div className="onboarding-probing" aria-hidden={!probing}>
             {firstRun !== undefined && <ProbingLine firstRun={firstRun} />}
           </div>
           <div className="onboarding-panel" inert={probing} aria-hidden={probing}>
             <div className="setup-heading">
-              <h1>{state.phase === 'error' ? t('Something went wrong') : downloading ? t('Getting Hob ready') : t('Welcome to Hob')}</h1>
+              <h1>{state.phase === 'error' ? t('Something went wrong') : downloading ? t('Getting Khaled Chat ready') : t('Welcome to Khaled Chat')}</h1>
               <p className="setup-subtitle">{state.phase === 'error' ? t('Let’s try that again.') : downloading ? t('Chat will open automatically.') : hob.platform === 'darwin' ? t('Your private AI, right on your Mac.') : t('Your private AI, right on your computer.')}</p>
             </div>
             {/* Windows and Linux show where downloads go: room for that line in every phase, so the card doesn't jump when the download starts */}

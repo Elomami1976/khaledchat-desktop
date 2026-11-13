@@ -19,7 +19,7 @@ type Props = {
   onDone(id: string | null): void
 }
 
-/** Create or edit a project: a name, the folders Hob may use (the first gets new files), and instructions. */
+/** Create or edit a project: a name, the folders Khaled Chat may use (the first gets new files), and instructions. */
 export function ProjectDialog({ project, folders: start, onClose, onDone }: Props) {
   const [name, setName] = useState(project?.name ?? '')
   const [instructions, setInstructions] = useState(project?.instructions ?? '')
@@ -85,11 +85,11 @@ export function ProjectDialog({ project, folders: start, onClose, onDone }: Prop
           </div>
           {problem
             ? <p data-testid="project-folder-problem" className="mt-1.5 text-ui text-ink-soft">{problem}</p>
-            : !folders.length && <p className="mt-1.5 text-meta text-muted">{t('Optional. Add folders Hob should work with, like a work folder or your photos. It can see the files in them and asks before changing any.')}</p>}
+            : !folders.length && <p className="mt-1.5 text-meta text-muted">{t('Optional. Add folders Khaled Chat should work with, like a work folder or your photos. It can see the files in them and asks before changing any.')}</p>}
         </div>
         <Field label={t('Instructions (optional)')}>
           <textarea data-testid="project-instructions" rows={3} className={`${field} resize-none`} value={instructions}
-            onChange={(e) => setInstructions(e.target.value)} placeholder={t('Anything Hob should know for every chat in this project')} />
+            onChange={(e) => setInstructions(e.target.value)} placeholder={t('Anything Khaled Chat should know for every chat in this project')} />
         </Field>
         {error && <p className="text-ui text-danger">{error}</p>}
         <div className="flex items-center gap-2">

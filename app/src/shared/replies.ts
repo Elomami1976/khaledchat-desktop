@@ -1,6 +1,6 @@
 import { msg, t } from './i18n'
 
-/** What Hob says when a turn didn't produce an answer. The UI offers Retry under these only. */
+/** What Khaled Chat says when a turn didn't produce an answer. The UI offers Retry under these only. */
 export const FAILED = msg('Something went wrong. Try again.')
 export const NO_ANSWER = msg("I couldn't come up with an answer. Try rephrasing.")
 export const REPEATING = msg('*I started repeating myself, so I stopped. Try asking again, a bit more specifically.*')
@@ -11,7 +11,7 @@ export function failedReply(content: string): boolean {
   return content === FAILED || content === NO_ANSWER || content.endsWith(REPEATING)
 }
 
-/** A reply as shown: Hob's own lines in the interface's language (they're stored in English, to compare) */
+/** A reply as shown: Khaled Chat's own lines in the interface's language (they're stored in English, to compare) */
 export function shownReply(content: string): string {
   if (content === FAILED || content === NO_ANSWER) return t(content)
   const note = [REPEATING, STOPPED].find((n) => content.endsWith(n))

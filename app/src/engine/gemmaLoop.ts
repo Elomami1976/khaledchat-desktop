@@ -6,7 +6,7 @@ type Sampling = Pick<LLamaChatGenerateResponseOptions<undefined>, 'temperature' 
 
 /**
  * A reply from Gemma 4 with tools, Gemma writing its calls its own way (see gemma.ts). Each round streams until
- * the model ends a call (`<tool_call|>`); Hob reads the call, runs the tool, and the model carries on in the same
+ * the model ends a call (`<tool_call|>`); Khaled Chat reads the call, runs the tool, and the model carries on in the same
  * turn. Returns the text of each round.
  */
 export async function gemmaReply(o: {
@@ -53,7 +53,7 @@ export async function gemmaReply(o: {
           if (inCall && tokens.includes(callEnd)) called.abort()
           o.onToken?.(tokens)
         },
-        // the call itself is Hob's to read, not the user's
+        // the call itself is Khaled Chat's to read, not the user's
         onTextChunk: (chunk) => { if (!inCall) { text += chunk; o.onText(chunk) } },
         onResponseChunk: (c) => {
           if (c.type === 'segment' && c.segmentType === 'thought') thoughts += c.tokens.length

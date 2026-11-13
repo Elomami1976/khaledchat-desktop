@@ -11,7 +11,7 @@ export function loadBundledCatalog(bundled: unknown, licenses: string[]): Catalo
   return r.catalog
 }
 
-/** Hob's remote catalog with cache and bundled fallback. Unused by Khaled Chat (no remote URL); kept for its tests */
+/** Khaled Chat's remote catalog with cache and bundled fallback. Unused by Khaled Chat (no remote URL); kept for its tests */
 export async function loadCatalog(opts: { url: string; cachePath: string; bundled: unknown; licenses: string[]; fetchFn?: typeof fetch }): Promise<Catalog> {
   const fetchFn = opts.fetchFn ?? fetch
   try {

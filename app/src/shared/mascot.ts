@@ -1,5 +1,5 @@
 /**
- * Hob's face, in pixels on a 60×60 grid, drawn over the Iris SVG (assets/hob-body.svg).
+ * Khaled Chat's face, in pixels on a 60×60 grid, drawn over the Iris SVG (assets/hob-body.svg).
  * Shared by the app (animated) and the icon script.
  */
 export type Expression = 'smile' | 'skeptical' | 'blink' | 'neutral' | 'neutral-blink' | 'content' | 'wink' | 'laugh'

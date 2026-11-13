@@ -5,8 +5,8 @@ import { join } from 'node:path'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
-test("a folder Hob can't use yet: access card, then one card for all the renames", async () => {
-  // a pretend home with ~/Desktop/hob-test, which Hob hasn't been given
+test("a folder Khaled Chat can't use yet: access card, then one card for all the renames", async () => {
+  // a pretend home with ~/Desktop/hob-test, which Khaled Chat hasn't been given
   const home = mkdtempSync(join(tmpdir(), 'hob-home-'))
   const photos = join(home, 'Desktop', 'hob-test')
   mkdirSync(photos, { recursive: true })
@@ -20,7 +20,7 @@ test("a folder Hob can't use yet: access card, then one card for all the renames
   await page.getByTestId('composer-send').click()
   const card = page.getByTestId('approval')
   await expect(card).toHaveAttribute('data-access', 'true')
-  await expect(card).toContainText('Let Hob use your “hob-test” folder?')
+  await expect(card).toContainText('Let Khaled Chat use your “hob-test” folder?')
   await expect(card).toContainText(/~[\\/]Desktop[\\/]hob-test in this chat/)
   await expect(page.getByTestId('approval-always')).toHaveCount(0)
   await page.getByTestId('approval-allow').click()

@@ -128,7 +128,7 @@ export class SetupController {
         this.hw = hw
         this.result = pick(hw, catalog.models)
         const r = this.result
-        if (!r.recommended) return this.set({ phase: 'error', message: t('Hob needs at least 8 GB of memory to run on this computer.') })
+        if (!r.recommended) return this.set({ phase: 'error', message: t('Khaled Chat needs at least 8 GB of memory to run on this computer.') })
 
         const settings = loadSettings(this.deps.settingsPath)
         // Khaled Chat: an interrupted download is never resumed on its own. The choose screen offers it, and it
@@ -168,7 +168,7 @@ export class SetupController {
     return this.exclusive(() => this.install(target))
   }
 
-  /** The choose screen → Change: downloads go to a Hob folder in `dir`; free space (and models already there) are checked again */
+  /** The choose screen → Change: downloads go to a Khaled Chat folder in `dir`; free space (and models already there) are checked again */
   pickDownloads(dir: string) {
     if (this._state.phase !== 'choose' || !this.deps.downloads) return Promise.resolve()
     this.deps.downloads.move(dir)

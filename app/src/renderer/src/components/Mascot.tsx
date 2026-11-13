@@ -7,7 +7,7 @@ const neutral = faceRects('neutral')
 const smile = faceRects('smile').slice(2)
 const rect = (r: Rect, i: number) => <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />
 const glances = [{ x: -3, y: 0 }, { x: 3, y: 0 }, { x: 0, y: 0 }, { x: -2, y: 1 }, { x: 2, y: 1 }, { x: 0, y: -2 }]
-const greetings: Partial<Record<Expression, string>> = { content: msg('Hob smiles.'), wink: msg('Hob winks.'), laugh: msg('Hob laughs.'), skeptical: msg('Hob raises an eyebrow.') }
+const greetings: Partial<Record<Expression, string>> = { content: msg('Khaled Chat smiles.'), wink: msg('Khaled Chat winks.'), laugh: msg('Khaled Chat laughs.'), skeptical: msg('Khaled Chat raises an eyebrow.') }
 
 /** Click reactions are shared; only setup and the empty chat look around. */
 function usePlayfulFace(on: boolean, tapFace?: Expression) {
@@ -80,14 +80,14 @@ function usePlayfulFace(on: boolean, tapFace?: Expression) {
   return { ref, gaze, expression: reaction ?? expression, reaction, sayHello }
 }
 
-/** Every living Hob responds to a hello; the sidebar keeps its quiet idle face. */
-/** tapFace: the face each click makes (the corner Hob laughs); otherwise clicks run through smile, wink, laugh. A flurry of clicks raises an eyebrow either way */
+/** Every living Khaled Chat responds to a hello; the sidebar keeps its quiet idle face. */
+/** tapFace: the face each click makes (the corner Khaled Chat laughs); otherwise clicks run through smile, wink, laugh. A flurry of clicks raises an eyebrow either way */
 export function Mascot({ size = 96, alive = false, working = false, playful = false, tapFace }: { size?: number; alive?: boolean; working?: boolean; playful?: boolean; tapFace?: Expression }) {
   const face = usePlayfulFace(alive && playful, tapFace)
   const interactive = alive || playful
   const expression = playful || face.reaction ? face.expression : null
   const artwork = (
-    <svg ref={face.ref} data-testid="mascot" data-expression={expression ?? (working ? 'working' : 'smile')} width={size} height={size} viewBox="0 0 60 60" shapeRendering="crispEdges" role="img" aria-label="Hob" aria-hidden={interactive || undefined}
+    <svg ref={face.ref} data-testid="mascot" data-expression={expression ?? (working ? 'working' : 'smile')} width={size} height={size} viewBox="0 0 60 60" shapeRendering="crispEdges" role="img" aria-label="Khaled Chat" aria-hidden={interactive || undefined}
       className={`hob-mascot overflow-visible shrink-0 ${alive && !playful ? 'hob-alive' : ''} ${working ? 'hob-working' : ''}`}>
       <ellipse cx="30" cy="62" rx="16" ry="2" fill="currentColor" opacity="0.08" />
       <svg width="60" height="60" viewBox="158 155.5 937 937">
@@ -102,7 +102,7 @@ export function Mascot({ size = 96, alive = false, working = false, playful = fa
       </g>
     </svg>
   )
-  return interactive ? <button type="button" className="hob-interaction" aria-label={t('Say hello to Hob')} onClick={face.sayHello}>
+  return interactive ? <button type="button" className="hob-interaction" aria-label={t('Say hello to Khaled Chat')} onClick={face.sayHello}>
     {artwork}<span className="sr-only" role="status">{face.reaction ? t(greetings[face.reaction] ?? '') : ''}</span>
   </button> : artwork
 }

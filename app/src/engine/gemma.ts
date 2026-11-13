@@ -139,7 +139,7 @@ export function parseCall(text: string): { name: string; args: Record<string, Va
 
 /**
  * node-llama-cpp's Gemma 4 wrapper with the tools, calls and results written as Gemma's own template writes them.
- * The tools are set here (not passed as functions), so node-llama-cpp leaves the calls to Hob (gemmaTurn in worker).
+ * The tools are set here (not passed as functions), so node-llama-cpp leaves the calls to Khaled Chat (gemmaTurn in worker).
  */
 export class HobGemmaChatWrapper extends Gemma4ChatWrapper {
   tools: ChatModelFunctions = {}

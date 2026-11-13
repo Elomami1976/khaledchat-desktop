@@ -12,8 +12,8 @@ import { tx } from '../i18n'
 
 const TRUST: Record<PluginTrust, { icon: typeof Box; text: string }> = {
   instructions: { icon: ShieldCheck, text: msg("Adds know-how. Doesn't run anything.") },
-  builtin: { icon: ShieldCheck, text: msg('Part of Hob. Runs nothing extra.') },
-  code: { icon: Box, text: msg("Runs code in Hob's safe space") },
+  builtin: { icon: ShieldCheck, text: msg('Part of Khaled Chat. Runs nothing extra.') },
+  code: { icon: Box, text: msg("Runs code in Khaled Chat's safe space") },
   network: { icon: Globe, text: msg('Uses the internet') },
   online: { icon: Globe, text: msg('Connects to an online service') },
   full: { icon: TriangleAlert, text: msg('Runs its own program with full access to your computer') },
@@ -52,7 +52,7 @@ function SkillDialog({ initial, onClose, onSaved }: { initial?: NewSkill; onClos
         <Field label={t('Name')} hint={s.name ? t('Use it by typing /{name}', { name: s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }) : t('Short, like “Weekly report”')}>
           <input data-testid="skill-name" autoFocus={!initial} disabled={!!initial} className={field} value={s.name} onChange={(e) => setS({ ...s, name: e.target.value })} placeholder={t('Weekly report')} />
         </Field>
-        <Field label={t('When should Hob use it?')}>
+        <Field label={t('When should Khaled Chat use it?')}>
           <input data-testid="skill-description" className={field} value={s.description} onChange={(e) => setS({ ...s, description: e.target.value })} placeholder={t('When I ask for my weekly update for the team')} />
         </Field>
         <Field label={t('Instructions')} hint={t("Write it like you'd explain it to a friend. Steps and examples help.")}>
@@ -87,7 +87,7 @@ function ConnectDialog({ onClose, onDone }: { onClose(): void; onDone(notice: { 
     setConnecting(r.id)
     const c = await hob.plugins.connect(r.id)
     setConnecting(null)
-    onDone(c.ok ? { text: t('Connected. Hob can use it in your next message.') } : { text: t("Added, but it isn't connected yet: {error}", { error: c.error }), error: true }, r.id)
+    onDone(c.ok ? { text: t('Connected. Khaled Chat can use it in your next message.') } : { text: t("Added, but it isn't connected yet: {error}", { error: c.error }), error: true }, r.id)
   }
   const cancel = () => {
     if (connecting) { void hob.plugins.cancelConnect(connecting); return }
@@ -99,13 +99,13 @@ function ConnectDialog({ onClose, onDone }: { onClose(): void; onDone(notice: { 
         ? (
           <div data-testid="connect-waiting" className="space-y-4">
             <p className="flex items-center gap-2 text-body"><span className="size-2 animate-pulse rounded-full bg-ink" />{t('Connecting…')}</p>
-            <p className="text-ui text-ink-soft">{t('If your browser opens, sign in there and allow Hob. Then come back here.')}</p>
+            <p className="text-ui text-ink-soft">{t('If your browser opens, sign in there and allow Khaled Chat. Then come back here.')}</p>
             <div className="flex justify-end"><button className={button.quiet} onClick={cancel}>{t('Cancel')}</button></div>
           </div>
         )
         : (
           <div className="space-y-4">
-            <p className="text-ui text-ink-soft">{t('Connect Hob to an app or service with any MCP server: a link to an online one, or a program on this computer.')}</p>
+            <p className="text-ui text-ink-soft">{t('Connect Khaled Chat to an app or service with any MCP server: a link to an online one, or a program on this computer.')}</p>
             <Field label={t('Name')}><input className={field} value={name} onChange={(e) => setName(e.target.value)} placeholder={json ? t('Taken from the config') : link ? t('Taken from the link') : t('Notes')} /></Field>
             <Field label={t('Link, command or config')} hint={t('A link like {link}, a command like {command}, or a pasted {config} config.', { link: 'https://mcp.example.com/mcp', command: 'npx -y @modelcontextprotocol/server-memory', config: '{“mcpServers”: …}' })}>
               <textarea data-testid="connect-command" rows={3} className={`${field} resize-none font-mono text-meta leading-5`} value={command} onChange={(e) => setCommand(e.target.value)} placeholder="https://mcp.example.com/mcp" />
@@ -117,7 +117,7 @@ function ConnectDialog({ onClose, onDone }: { onClose(): void; onDone(notice: { 
             )}
             <p className="flex gap-2 rounded-control bg-line/50 p-3 text-ui text-ink-soft">
               {link
-                ? <><Globe size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" />{t('Hob sends what it needs for a task to this online service. If it asks you to sign in, your browser opens.')}</>
+                ? <><Globe size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" />{t('Khaled Chat sends what it needs for a task to this online service. If it asks you to sign in, your browser opens.')}</>
                 : <><TriangleAlert size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" />{t('This connector runs its own program with full access to your computer. Only add ones you trust.')}</>}
             </p>
             {error && <p className="text-ui text-accent">{error}</p>}
@@ -242,7 +242,7 @@ function PluginRow({ p, open, onToggleOpen, onTryPrompt }: { p: PluginInfo; open
           )}
           {p.tools.length > 0 && (
             <div>
-              <p className="mb-1 text-meta font-medium text-muted">{t('Tools Hob can use')}</p>
+              <p className="mb-1 text-meta font-medium text-muted">{t('Tools Khaled Chat can use')}</p>
               <p className="flex flex-wrap gap-1.5">{p.tools.map((t) => <code key={t} className="rounded-[6px] bg-line/70 px-1.5 text-meta leading-5 text-ink-soft">{t}</code>)}</p>
             </div>
           )}
@@ -258,7 +258,7 @@ function PluginRow({ p, open, onToggleOpen, onTryPrompt }: { p: PluginInfo; open
             <button className={button.quiet} onClick={() => void hob.plugins.show(p.id)}><FolderOpen size={14} />{t('Show in {app}', { app: fileManager(hob.platform) })}</button>
             {p.signedIn && !p.signIn && <button className={button.quiet} onClick={() => void hob.plugins.signOut(p.id)}><LogOut size={14} />{t('Sign out')}</button>}
             {p.source !== 'builtin' && (
-              <button data-testid="plugin-remove" className={button.quiet} onClick={() => void confirmAction({ title: t('Remove “{name}”?', { name: p.name }), body: p.source === 'linked' ? t('Hob stops using it. The folder stays where it is.') : t('Hob stops using it and deletes its copy.'), ok: p.source === 'linked' ? t('Unlink') : t('Remove'), danger: true }).then((yes) => { if (yes) void hob.plugins.remove(p.id) })}>
+              <button data-testid="plugin-remove" className={button.quiet} onClick={() => void confirmAction({ title: t('Remove “{name}”?', { name: p.name }), body: p.source === 'linked' ? t('Khaled Chat stops using it. The folder stays where it is.') : t('Khaled Chat stops using it and deletes its copy.'), ok: p.source === 'linked' ? t('Unlink') : t('Remove'), danger: true }).then((yes) => { if (yes) void hob.plugins.remove(p.id) })}>
                 <Trash2 size={14} />{p.source === 'linked' ? t('Unlink') : t('Remove')}
               </button>
             )}
@@ -272,8 +272,8 @@ function PluginRow({ p, open, onToggleOpen, onTryPrompt }: { p: PluginInfo; open
 
 export type Tab = 'skills' | 'connectors' | 'plugins'
 const BLURB: Record<Tab, string> = {
-  skills: msg('How-tos Hob uses when a task calls for them. Type / to run one yourself.'),
-  connectors: msg('Link Hob to your apps and services through MCP.'),
+  skills: msg('How-tos Khaled Chat uses when a task calls for them. Type / to run one yourself.'),
+  connectors: msg('Link Khaled Chat to your apps and services through MCP.'),
   plugins: msg('Bundles of skills, tools and connectors.'),
 }
 const TABS: { id: Tab; label: string }[] = [{ id: 'skills', label: msg('Skills') }, { id: 'connectors', label: msg('Connectors') }, { id: 'plugins', label: msg('Plugins') }]
@@ -415,8 +415,8 @@ export function Plugins({ opened, section, onSection, onTryPrompt }: { opened?: 
               )
               : null}
             {!mine.length && (
-              <Empty icon={Sparkles} title={t('Teach Hob something')} onClick={() => setDialog({ kind: 'skill' })}
-                text={t('Write down how you like a task done, then run it any time with /name. Or after Hob does something, say “save this as a skill”.')} />
+              <Empty icon={Sparkles} title={t('Teach Khaled Chat something')} onClick={() => setDialog({ kind: 'skill' })}
+                text={t('Write down how you like a task done, then run it any time with /name. Or after Khaled Chat does something, say “save this as a skill”.')} />
             )}
           </section>
         )}
@@ -425,7 +425,7 @@ export function Plugins({ opened, section, onSection, onTryPrompt }: { opened?: 
           <section className="space-y-3">
             {connectors.length ? rows(connectors) : (
               <Empty icon={Plug} title={t('Connect an app')} onClick={() => setDialog({ kind: 'connect' })}
-                text={t('Let Hob use your apps and services, like notes, calendars or project tools, through any MCP server.')} />
+                text={t('Let Khaled Chat use your apps and services, like notes, calendars or project tools, through any MCP server.')} />
             )}
             <p className="text-meta text-muted">
               {tx('Have an .mcpb file? Drop it here or {choose}.', {

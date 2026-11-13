@@ -14,7 +14,7 @@ const name = (p: string) => p.split(/[\\/]/).pop() ?? p
 export { madeFiles }
 export const isChart = (f: string) => CHART.test(f)
 
-/** Hob's own charts: drawn live, not a file to open */
+/** Khaled Chat's own charts: drawn live, not a file to open */
 export function Charts({ paths, className = 'my-3' }: { paths: string[]; className?: string }) {
   if (!paths.length) return null
   return <div className={`${className} space-y-2`}>{paths.map((f) => <div key={f} className="overflow-hidden rounded-card border border-line bg-surface"><ChartCard path={f} /></div>)}</div>

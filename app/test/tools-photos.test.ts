@@ -8,8 +8,8 @@ import type { TurnCtx } from '../src/main/agent/tool'
 import type { PythonRuntime } from '../src/main/python/runtime'
 import { photoInfo } from '../src/main/tools/photos'
 
-// Hob's own Python (with Pillow), when it's installed on this machine
-const root = join(homedir(), 'Library', 'Application Support', 'Hob', 'python')
+// Khaled Chat's own Python (with Pillow), when it's installed on this machine
+const root = join(homedir(), 'Library', 'Application Support', 'Khaled Chat', 'python')
 const python = join(root, 'python', 'bin', 'python3')
 
 it.skipIf(!existsSync(python))('photo_info reads the date taken from EXIF, not the file date', async () => {

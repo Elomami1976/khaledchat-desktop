@@ -3,8 +3,8 @@ import { dirOf, LOCALES, matchLocale, msg, setLanguage, t, translate } from '../
 
 afterEach(() => setLanguage('en'))
 
-describe('matchLocale: the computer’s languages to one Hob speaks', () => {
-  it('takes the first language Hob has', () => {
+describe('matchLocale: the computer’s languages to one Khaled Chat speaks', () => {
+  it('takes the first language Khaled Chat has', () => {
     expect(matchLocale(['xx-YY', 'de-AT', 'fr-FR'])).toBe('de')
   })
   it('falls back to English when it has none of them', () => {

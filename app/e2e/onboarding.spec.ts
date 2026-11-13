@@ -12,7 +12,7 @@ test('first run: recommend → download → chat', async () => {
   const page = await app.firstWindow()
 
   // The recommendation stays personal, with one combined download size.
-  // Khaled Chat: only the chosen model is downloaded (Hob added a starter model: 19.6 GB)
+  // Khaled Chat: only the chosen model is downloaded (Khaled Chat added a starter model: 19.6 GB)
   await expect(page.getByTestId('setup-download-size')).toHaveText('14.5 GB download')
   await expect(page.getByTestId('setup-recommended')).toContainText('Gemma 4 26B')
   await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
@@ -35,7 +35,7 @@ test('first run: recommend → download → chat', async () => {
   await page.getByTestId('copy-reply').last().click()
   expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toContain('You said: hello there')
 
-  // typing while Hob works queues the message; it sends when the reply is done
+  // typing while Khaled Chat works queues the message; it sends when the reply is done
   await page.getByTestId('composer-input').fill('__slow__')
   await page.getByTestId('composer-send').click()
   await expect(page.getByTestId('message-assistant').last()).toContainText('one')
@@ -123,7 +123,7 @@ test('choose a different model from the list', async () => {
   await page.getByRole('button', { name: 'Use this model' }).click()
   await expect(page.getByTestId('model-option')).toHaveCount(0)
   await expect(page.getByTestId('setup-recommended')).toContainText('gpt-oss 20B')
-  await expect(page.getByTestId('setup-download-size')).toHaveText('12.2 GB download') // Khaled Chat: no starter model added (Hob: 17.3 GB)
+  await expect(page.getByTestId('setup-download-size')).toHaveText('12.2 GB download') // Khaled Chat: no starter model added (Khaled Chat: 17.3 GB)
 
   await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })

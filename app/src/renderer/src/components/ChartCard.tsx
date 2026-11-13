@@ -151,7 +151,7 @@ async function toPng(svg: SVGSVGElement, spec: ChartSpec, c: Colors, items: { la
   return canvas.toDataURL('image/png')
 }
 
-/** A chart Hob made (a .chart.json in the chat folder), drawn live; Download PNG saves an image of it. */
+/** A chart Khaled Chat made (a .chart.json in the chat folder), drawn live; Download PNG saves an image of it. */
 export function ChartCard({ path }: { path: string }) {
   const [spec, setSpec] = useState<ChartSpec | null>(null)
   const [error, setError] = useState<string | null>(null)

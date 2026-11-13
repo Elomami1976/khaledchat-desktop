@@ -14,6 +14,7 @@ const api: HobApi = {
   platform: process.platform,
   fake: process.env.HOB_FAKE === '1',
   copy: invoke('copy'),
+  system: { info: invoke('system:info') },
   // Khaled Chat: download confirmations and optional components
   downloads: { info: invoke('downloads:info'), approve: invoke('downloads:approve') },
   components: {

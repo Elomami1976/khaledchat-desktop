@@ -17,7 +17,7 @@ import { VisionInstaller } from '../src/main/vision/install'
 import { VisionServer } from '../src/main/vision/server'
 
 /**
- * The tools as people use them, with nothing faked: Hob's own Python (sandboxed), web search through SearXNG,
+ * The tools as people use them, with nothing faked: Khaled Chat's own Python (sandboxed), web search through SearXNG,
  * and the image model through llama-server. Downloads about 2 GB, so it runs only with HOB_SMOKE=1
  * (CI does, on Mac, Windows and Linux).
  */
@@ -48,7 +48,7 @@ afterAll(() => { searx.stop(); server.stop() })
 
 describe.runIf(on)('smoke: the real tools on this system', () => {
   // Windows can't create symlinks without admin rights, and CI runners have them, so this is checked on the archives
-  // themselves: what Hob unpacks holds no links (SearXNG on every system, so a slip shows anywhere)
+  // themselves: what Khaled Chat unpacks holds no links (SearXNG on every system, so a slip shows anywhere)
   const key = `${process.platform}-${process.arch}`
   const links = (archive: string, extra: string[] = []) =>
     execFileSync(tarCmd(key), ['-tvf', archive, ...extra], { maxBuffer: 256 * 1024 * 1024 }).toString().split('\n').filter((l) => /^[lh]/.test(l) || / link to /.test(l))
@@ -76,7 +76,7 @@ describe.runIf(on)('smoke: the real tools on this system', () => {
 
   it('looks at an image', async () => {
     await installer.ensure()
-    // a plain red picture, written by Hob's Python (Pillow)
+    // a plain red picture, written by Khaled Chat's Python (Pillow)
     await runPythonTool.run({ code: 'from PIL import Image\nImage.new("RGB", (64, 64), (220, 20, 20)).save("red.png")' }, ctx)
     const out = await lookAtImage.run({ path: join(chatDir, 'red.png'), question: 'What colour is this picture? One word.' }, ctx)
     expect(out.failed, out.text).toBeFalsy()

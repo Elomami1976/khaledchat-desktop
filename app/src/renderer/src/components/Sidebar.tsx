@@ -82,7 +82,7 @@ export function Sidebar({ state, selected, refreshKey, screen, draftProject, onS
   useEffect(() => hob.chats.onChanged(reload), [])
 
   async function remove(c: ChatSummary) {
-    if (!await confirmAction({ title: t('Delete “{title}”?', { title: shownTitle(c.title) }), body: t('The chat is removed from Hob. Files you added to it, or that Hob made in it, move to the Trash.'), ok: t('Delete chat'), danger: true })) return
+    if (!await confirmAction({ title: t('Delete “{title}”?', { title: shownTitle(c.title) }), body: t('The chat is removed from Khaled Chat. Files you added to it, or that Khaled Chat made in it, move to the Trash.'), ok: t('Delete chat'), danger: true })) return
     await hob.chats.remove(c.id)
     if (c.id === selected) onNew()
     reload()

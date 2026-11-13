@@ -1,18 +1,18 @@
 import { isAbsolute, normalize } from 'node:path'
 
-/** A tool a plugin adds: a Python script (any plugin) or Hob's own code (built-in plugins only). */
+/** A tool a plugin adds: a Python script (any plugin) or Khaled Chat's own code (built-in plugins only). */
 export type ManifestTool = {
   name: string
   description: string
   params: Record<string, unknown>
   /** Python script, relative to the plugin folder */
   run?: string
-  /** built-in plugins only: one of Hob's own tools, by name */
+  /** built-in plugins only: one of Khaled Chat's own tools, by name */
   native?: string
   /** step title, with {arg} placeholders */
   title?: string
 }
-/** a program on this computer (runtime: how an .mcpb bundle runs it, so Hob can use its own Node or Python) */
+/** a program on this computer (runtime: how an .mcpb bundle runs it, so Khaled Chat can use its own Node or Python) */
 export type McpStdioConfig = { command: string; args?: string[]; env?: Record<string, string>; runtime?: 'node' | 'python' | 'uv' | 'binary' }
 /** a server on the internet; oauth.clientId when its maker hands out client ids instead of letting apps register */
 export type McpUrlConfig = { url: string; type?: 'http' | 'sse'; headers?: Record<string, string>; oauth?: { clientId: string; clientSecret?: string } }
@@ -33,7 +33,7 @@ export type Manifest = {
   tools: ManifestTool[]
   mcpServers: Record<string, McpServerConfig>
   settings: PluginSetting[]
-  /** a line added to Hob's instructions while the plugin is on, e.g. "For PDFs, use read_pdf." */
+  /** a line added to Khaled Chat's instructions while the plugin is on, e.g. "For PDFs, use read_pdf." */
   prompt?: string
   /** only on these systems (process.platform names, e.g. ["darwin"]); everywhere when left out */
   platforms?: string[]
@@ -74,8 +74,8 @@ export function parseManifest(raw: unknown, opts: { builtin?: boolean } = {}): {
       const f = `tools[${i}]`
       if (!isObj(t)) fail(`${f} must be an object`)
       const native = t.native === undefined ? undefined : str(t.native, `${f}.native`)
-      if (native && !opts.builtin) fail(`${f}.native is only for plugins that ship with Hob; use "run" with a Python script`)
-      // Hob's own tools bring their name, description and parameters
+      if (native && !opts.builtin) fail(`${f}.native is only for plugins that ship with Khaled Chat; use "run" with a Python script`)
+      // Khaled Chat's own tools bring their name, description and parameters
       const name = native && t.name === undefined ? native : str(t.name, `${f}.name`)
       if (!TOOL_NAME.test(name)) fail(`${f}.name must be letters, digits or _, starting with a letter`)
       const params = t.params === undefined ? { type: 'object', properties: {} } : t.params

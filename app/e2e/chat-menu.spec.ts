@@ -57,7 +57,7 @@ test('the … beside a chat: pin, rename, save as Markdown, delete', async () =>
   await app.evaluate(({ dialog }, p) => { dialog.showSaveDialog = (async () => ({ canceled: false, filePath: p })) as never }, file)
   await menu('Trip ideas')
   await page.getByTestId('chat-save').click()
-  await expect.poll(() => existsSync(file) && readFileSync(file, 'utf8')).toBe('# Trip ideas\n\n**You**\n\nweekend plans\n\n**Hob**\n\nYou said: weekend plans\n')
+  await expect.poll(() => existsSync(file) && readFileSync(file, 'utf8')).toBe('# Trip ideas\n\n**You**\n\nweekend plans\n\n**Khaled Chat**\n\nYou said: weekend plans\n')
 
   // delete asks first
   await menu('Trip ideas')

@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { homedir } from 'node:os'
 import type { ApprovalAnswer, Attachment, UserSettings } from '../shared/agent'
-import type { VisionState } from '../shared/types'
+import type { SystemInfo, VisionState } from '../shared/types'
 import type { SetupController } from './setup'
 import type { Store } from './store'
 import type { PythonRuntime } from './python/runtime'
@@ -26,7 +26,7 @@ import { saveSkillTool, useSkillTool } from './plugins/skillTools'
 import type { NewSkill } from '../shared/plugins'
 import { AlreadyHereError, copyIn, isInside, isRunnable, nextChatDir, sizeOf, TooBigError, validFilesDir } from './workspace'
 import { isEffort } from '../shared/effort'
-import { effortOf, loadSettings, localeOf, updateSettings, webAccessOn } from './settings'
+import { cleanFirstName, effortOf, loadSettings, localeOf, updateSettings, webAccessOn } from './settings'
 import { isLocale, setLanguage, t } from '../shared/i18n'
 import { shownTitle, tidyTitle } from '../shared/replies'
 import { chatFileName, chatMarkdown } from '../shared/chatExport'
@@ -53,19 +53,21 @@ export type IpcDeps = {
   /** absent in fake mode: dictation returns a fixed sentence */
   speech?: SpeechModel
   plugins: PluginRegistry
-  /** Hob's eyes: state for the UI, and asking about an image */
+  /** Khaled Chat's eyes: state for the UI, and asking about an image */
   /** the Google or Microsoft account for calendar and email */
   accounts: AccountsLike
   vision?: { state(): VisionState; onState(cb: (s: VisionState) => void): void; ask(image: string, question: string, signal?: AbortSignal): Promise<string>; retry(): void }
-  /** a reply finished or Hob is waiting, while the person is in another app */
+  /** a reply finished or Khaled Chat is waiting, while the person is in another app */
   notices?: Notices
-  /** Settings → Remove Hob */
+  /** Settings → Remove Khaled Chat */
   removeHob(): Promise<void>
   fake?: boolean
   /** Khaled Chat: optional parts, installed only after the person confirms (Settings → Optional components) */
   components?: Pick<Components, 'list' | 'info' | 'install' | 'cancel'>
   /** Khaled Chat: the exact rule for the app's own page (security.ts isAppUrl); IPC from anything else is refused */
   isOwnPage?(url: string): boolean
+  /** Khaled Chat: Settings → Hardware */
+  systemInfo?(): Promise<SystemInfo>
 }
 
 export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise<void> } {
@@ -85,7 +87,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
   const userSettings = (): UserSettings => {
     const s = loadSettings(d.paths.settings)
     const system = systemLocale()
-    return { webAccess: webAccessOn(s), filesDir: d.filesDir(), theme: s.theme ?? 'system', effort: effortOf(s), language: isLocale(s.language) ? s.language : '', locale: localeOf(s, system), systemLocale: system }
+    return { firstName: s.firstName ?? '', webAccess: webAccessOn(s), filesDir: d.filesDir(), theme: s.theme ?? 'system', effort: effortOf(s), language: isLocale(s.language) ? s.language : '', locale: localeOf(s, system), systemLocale: system }
   }
   d.setup.onState((s) => send('setup:state', s))
   d.vision?.onState((s) => send('vision:state', s))
@@ -120,13 +122,14 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return !!k && k.kind === 'component' && !!d.components?.cancel(k.id)
   })
 
+  ipcMain.handle('system:info', () => d.systemInfo?.() ?? null)
   ipcMain.handle('copy', (_e, text: unknown) => clipboard.writeText(str(text, 'text', 10_000_000)))
   ipcMain.handle('setup:getState', () => d.setup.state)
   ipcMain.handle('setup:confirm', (_e, modelId?: unknown) => { void d.setup.confirm(optId(modelId, 'model id')) })
   ipcMain.handle('setup:retry', () => { void d.setup.retry() })
   ipcMain.handle('setup:pickDownloads', async () => {
     const win = d.win()
-    const opts: OpenDialogOptions = { title: t('Where should Hob save its downloads?'), properties: ['openDirectory', 'createDirectory'] }
+    const opts: OpenDialogOptions = { title: t('Where should Khaled Chat save its downloads?'), properties: ['openDirectory', 'createDirectory'] }
     const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
     if (!r.canceled && r.filePaths[0]) await d.setup.pickDownloads(r.filePaths[0])
   })
@@ -194,7 +197,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     d.store.keepMessages(id, n)
     return true
   })
-  /** every chat, gone from Hob; the files they made stay where they are (the page asks first) */
+  /** every chat, gone from Khaled Chat; the files they made stay where they are (the page asks first) */
   ipcMain.handle('chats:removeAll', async () => {
     running.stopAll()
     for (const c of d.store.listChats()) await removeChat(c.id, true)
@@ -391,6 +394,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
   ipcMain.handle('settings:set', (_e, rawPatch: unknown) => {
     const patch = plainObject(rawPatch, 'settings') as Partial<UserSettings>
     updateSettings(d.paths.settings, {
+      ...(patch.firstName !== undefined ? { firstName: cleanFirstName(patch.firstName) } : {}),
       ...(patch.webAccess !== undefined ? { webAccess: !!patch.webAccess } : {}),
       ...(patch.filesDir && validFilesDir(String(patch.filesDir)) ? { filesDir: String(patch.filesDir) } : {}),
       ...(patch.theme !== undefined ? { theme: patch.theme === 'light' || patch.theme === 'dark' ? patch.theme : undefined } : {}),
@@ -399,7 +403,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     })
     // gpt-oss reads its reasoning level first: read the chat ahead again with the new one
     if (patch.effort !== undefined) void warm()
-    // Hob's own words (step names, dialogs) and the language it's told to answer in
+    // Khaled Chat's own words (step names, dialogs) and the language it's told to answer in
     if (patch.language !== undefined) { setLanguage(localeOf(loadSettings(d.paths.settings), systemLocale())); void warm() }
     // the whole app, system dialogs included, follows it
     if (patch.theme !== undefined) nativeTheme.themeSource = loadSettings(d.paths.settings).theme ?? 'system'
@@ -456,7 +460,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     // can't answer for itself
     const win = d.win()
     if (!d.fake && win) {
-      const r = await dialog.showMessageBox(win, { type: 'warning', buttons: [t('Remove'), t('Cancel')], defaultId: 1, cancelId: 1, message: t('Remove Hob and everything it downloaded?'), detail: t('Your chats, models and settings are deleted. Files in your chat folders stay.') })
+      const r = await dialog.showMessageBox(win, { type: 'warning', buttons: [t('Remove'), t('Cancel')], defaultId: 1, cancelId: 1, message: t('Remove Khaled Chat and everything it downloaded?'), detail: t('Your chats, models and settings are deleted. Files in your chat folders stay.') })
       if (r.response !== 0) return false
     }
     await d.removeHob()
@@ -475,7 +479,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
       const r = await dialog.showMessageBox(win, {
         type: full ? 'warning' : 'question', buttons: [t('Add'), t('Cancel')], defaultId: 0, cancelId: 1,
         message: t('Add “{name}”?', { name: info.name }),
-        detail: full ? t('It runs its own program with full access to your computer. Only add plugins you trust.') : t('It adds new skills or tools to Hob.'),
+        detail: full ? t('It runs its own program with full access to your computer. Only add plugins you trust.') : t('It adds new skills or tools to Khaled Chat.'),
       })
       if (r.response !== 0) return null
     }
@@ -486,7 +490,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
     return res
   }
   ipcMain.handle('plugins:add', async () => {
-    const r = await dialog.showOpenDialog({ title: t('Add a plugin'), buttonLabel: t('Add'), properties: ['openFile', 'openDirectory'], filters: [{ name: t('Hob plugin or MCP bundle'), extensions: PLUGIN_FILES }] })
+    const r = await dialog.showOpenDialog({ title: t('Add a plugin'), buttonLabel: t('Add'), properties: ['openFile', 'openDirectory'], filters: [{ name: t('Khaled Chat plugin or MCP bundle'), extensions: PLUGIN_FILES }] })
     if (r.canceled || !r.filePaths[0]) return null
     return addPlugin(r.filePaths[0], true)
   })
@@ -525,7 +529,7 @@ export function registerIpc(d: IpcDeps): { openPluginFile(path: string): Promise
       const ok = await dialog.showMessageBox(win, {
         type: 'warning', buttons: [t('Connect'), t('Cancel')], defaultId: 1, cancelId: 1,
         message: t('Connect “{name}”?', { name: conn.name || t('this app') }),
-        detail: `${remote ? t('Hob will send your requests to this server:') : t('This runs a program on your computer with full access to it. Only connect apps you trust.')}\n\n${shown}`,
+        detail: `${remote ? t('Khaled Chat will send your requests to this server:') : t('This runs a program on your computer with full access to it. Only connect apps you trust.')}\n\n${shown}`,
       })
       if (ok.response !== 0) return { ok: false, error: t('Cancelled.') }
     }

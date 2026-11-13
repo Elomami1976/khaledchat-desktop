@@ -27,7 +27,7 @@ describe("Gemma 4's own tool-call format", () => {
     expect(declarationText('move_file', { description: 'Move a file.', params: { type: 'object', properties: { from: { type: 'string', description: 'Where it is' }, to: { type: 'string' } }, required: ['from', 'to'] } }))
       .toBe(`declaration:move_file{description:${Q}Move a file.${Q},parameters:{properties:{from:{description:${Q}Where it is${Q},type:${Q}STRING${Q}},to:{type:${Q}STRING${Q}}},required:[${Q}from${Q},${Q}to${Q}],type:${Q}OBJECT${Q}}}`)
   })
-  it('round trip: what Hob writes, Gemma-style, reads back the same', () => {
+  it('round trip: what Khaled Chat writes, Gemma-style, reads back the same', () => {
     const args = { code: 'x = {"a": [1, 2]}\nprint(x)', network: false, files: ['a b.csv'] }
     expect(parseCall(`run_python${argumentText(args)}`)?.args).toEqual(args)
   })

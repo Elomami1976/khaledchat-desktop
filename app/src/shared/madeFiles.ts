@@ -5,7 +5,7 @@ const HELPER_DATA = /\.(csv|tsv|json|jsonl|parquet|feather|pkl|pickle|npy|npz)$/
 const name = (p: string) => p.split(/[\\/]/).pop() ?? p
 
 /**
- * What a reply made, to show as cards: files it created or changed, and Hob's charts. Not a chart's data or a
+ * What a reply made, to show as cards: files it created or changed, and Khaled Chat's charts. Not a chart's data or a
  * list of moves (a means, not a result), and not data files code saved along the way unless the reply names them.
  */
 export function madeFiles(steps: Step[], reply = ''): string[] {

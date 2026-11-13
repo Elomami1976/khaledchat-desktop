@@ -16,7 +16,7 @@ it("doesn't count plans, offers, questions or honest failures", () => {
     "I haven't renamed anything yet.",
     'Here is how they would be renamed:',
     'Want me to move them into a folder?',
-    "I couldn't move the files because Hob doesn't have access.",
+    "I couldn't move the files because Khaled Chat doesn't have access.",
     'Once you allow it, the files will be renamed.',
     'Should these be deleted?',
     'Here are the new names:\n```\nIMG_1.jpg → renamed.jpg\n```',
@@ -65,10 +65,10 @@ it('finds files a reply names that do not exist, in any language', () => {
 it('only a reply that made no files is held to the names it mentions, and names match by file name, not path', () => {
   const inChat = (n: string) => n === 'Annual_Report_Summary.pdf'
   // made a file: a name slip or a path written differently isn't worth sending it back
-  expect(unbackedFiles('Saved to ~/Documents/Hob/2026-10-21 22.52/Annual_Report_Summary.pdf', { made: ['/x/Annual_Report_Summary.pdf'], exists: inChat })).toEqual([])
+  expect(unbackedFiles('Saved to ~/Documents/Khaled Chat/2026-10-21 22.52/Annual_Report_Summary.pdf', { made: ['/x/Annual_Report_Summary.pdf'], exists: inChat })).toEqual([])
   expect(unbackedFiles('Your summary is in report-summary.pdf.', { made: ['/x/summary.pdf'], exists: () => false })).toEqual([])
   // made nothing: a path with spaces still finds the file that is there
-  expect(unbackedFiles('Saved to ~/Documents/Hob/2026-10-21 22.52/Annual_Report_Summary.pdf', { made: [], exists: inChat })).toEqual([])
+  expect(unbackedFiles('Saved to ~/Documents/Khaled Chat/2026-10-21 22.52/Annual_Report_Summary.pdf', { made: [], exists: inChat })).toEqual([])
   // made nothing, and the file isn't anywhere: that's the claim to check
   expect(unbackedFiles('Jeg har gemt filen indkob.txt.', { made: [], exists: () => false })).toEqual(['indkob.txt'])
 })

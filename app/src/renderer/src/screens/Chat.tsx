@@ -10,7 +10,7 @@ import type { AccountsState } from '../../../shared/types'
 import type { SkillRef, StarterRef } from '../../../shared/plugins'
 import { PluginIcon } from '../components/ui'
 import { hob } from '../api'
-import { Mascot } from '../components/Mascot'
+import { Welcome } from '../components/Welcome'
 import { CopyButton } from '../components/CopyButton'
 import { ThinkingIndicator, WorkLog } from '../components/WorkLog'
 import { Charts, FileCards, isChart, madeFiles } from '../components/FileCards'
@@ -102,7 +102,7 @@ function EditMessage({ text, onSend, onCancel }: { text: string; onSend(text: st
         }}
         className="block w-full resize-none bg-transparent text-body outline-none" />
       <div className="mt-2 flex items-center justify-end gap-2">
-        <span className="me-auto text-meta text-muted">{t('Hob answers again from here.')}</span>
+        <span className="me-auto text-meta text-muted">{t('Khaled Chat answers again from here.')}</span>
         <button data-testid="edit-cancel" onClick={onCancel} className="rounded-control px-2.5 py-1 text-ui text-ink-soft hover:bg-line/70 hover:text-ink">{t('Cancel')}</button>
         <button data-testid="edit-send" disabled={!value.trim()} onClick={() => onSend(value.trim())} className="rounded-control bg-action px-2.5 py-1 text-ui text-on-action disabled:opacity-40">{t('Send')}</button>
       </div>
@@ -295,7 +295,7 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
     }
     if ('error' in r) {
       setNotice(r.error === 'too-big'
-        ? { text: t("That's {gb} GB, too big to copy. Make a project for its folder instead, so Hob can use it where it is.", { gb: new Intl.NumberFormat(language(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(r.gb) }), folders: paths }
+        ? { text: t("That's {gb} GB, too big to copy. Make a project for its folder instead, so Khaled Chat can use it where it is.", { gb: new Intl.NumberFormat(language(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(r.gb) }), folders: paths }
         : { text: `${r.message}.` })
       return
     }
@@ -312,7 +312,7 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
     const id = await ensureChat()
     const added: Attachment[] = []
     for (const f of files) if (f.type.startsWith('image/')) added.push(...await hob.files.paste(id, new Uint8Array(await f.arrayBuffer()), f.type))
-    if (!added.length) { setNotice({ text: t('Hob can only take pasted images or files.') }); return }
+    if (!added.length) { setNotice({ text: t('Khaled Chat can only take pasted images or files.') }); return }
     setNotice(null)
     setPending((p) => [...p, ...added])
     inputRef.current?.focus()
@@ -350,7 +350,8 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
   const showConnect = macAccess === undefined || !accounts ? false
     : accounts.current ? false
     : macAccess ? !connected(macAccess)
-    : accounts.available.length > 0 || !hasConnector
+    // Khaled Chat: no online accounts; on Windows and Linux there is no built-in email and calendar to offer
+    : false
   // the Mac's apps or a Google/Microsoft sign-in; with neither, a connector (Plugins → Connectors)
   const openConnect = () => (macAccess || accounts?.available.length ? setConnectOpen(true) : onConnectors())
 
@@ -367,7 +368,7 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
     }
   }
 
-  // typed while Hob was still working: sent as soon as the reply is done
+  // typed while Khaled Chat was still working: sent as soon as the reply is done
   const [queued, setQueued] = useState<string | null>(null)
   useEffect(() => {
     if (requestId || !queued) return
@@ -432,7 +433,7 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
       {queued && (
         <div data-testid="queued" className="fade-in mb-1.5 flex items-center gap-2 rounded-control bg-line/50 px-3 py-1.5 text-ui text-ink-soft">
           <Clock size={14} className="shrink-0 text-muted" />
-          <span className="min-w-0 flex-1 truncate">{t('Sends when Hob is done: {text}', { text: queued })}</span>
+          <span className="min-w-0 flex-1 truncate">{t('Sends when Khaled Chat is done: {text}', { text: queued })}</span>
           <button aria-label={t("Don't send")} title={t("Don't send")} onClick={() => { setInput(queued); setQueued(null) }} className="text-muted hover:text-ink"><X size={14} /></button>
         </div>
       )}
@@ -468,7 +469,6 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
         <div className={`mx-auto max-w-[768px] px-6 sm:px-8 ${empty ? 'flex min-h-full flex-col justify-center pb-16' : 'space-y-8 pb-10'}`}>
           {empty && (
             <div className="chat-greeting pt-6 text-center">
-              <div className="mb-[23px] flex justify-center"><Mascot size={48} alive playful /></div>
               {project
                 ? <>
                     <h1 className="text-title font-semibold tracking-tight">{t('What should we do in {name}?', { name: project.name })}</h1>
@@ -486,9 +486,9 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
                       : <p className="mt-2 text-body text-ink-soft">{t("Chats here follow this project's instructions.")}</p>}
                   </>
                 : <>
-                    <h1 className="text-[clamp(24px,4vw,32px)] font-semibold leading-[1.2] tracking-[-.95px]">{t('What are we working on?')}</h1>
-                    <p className="mt-2 text-[14px] leading-[22px] text-ink-soft">
-                      {tx('Private, on your computer. Drop in files, or {link}.', { link: <button data-testid="home-new-project" onClick={() => onNewProject()} className="underline underline-offset-2 hover:text-ink">{t('give Hob a folder to work in')}</button> })}
+                    <Welcome seed={seed} />
+                    <p className="mt-1 text-[13px] leading-[20px] text-muted">
+                      {tx('Drop in files, or {link}.', { link: <button data-testid="home-new-project" onClick={() => onNewProject()} className="underline underline-offset-2 hover:text-ink">{t('give Khaled Chat a folder to work in')}</button> })}
                     </p>
                   </>}
               <div className="mt-6 text-start">{composer}</div>
@@ -567,7 +567,7 @@ export function ChatView({ chatId: initialId, projectId: initialProject, initial
             <ArrowDown size={16} strokeWidth={1.75} />
           </button>
           {composer}
-          <p className="mt-2 text-center text-meta text-muted">{t('Hob can make mistakes.')}</p>
+          <p className="mt-2 text-center text-meta text-muted">{t('Khaled Chat can make mistakes.')}</p>
         </div>
       )}
     </main>

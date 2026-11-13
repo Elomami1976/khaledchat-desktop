@@ -1,6 +1,6 @@
 import { msg } from './i18n'
 
-/** How long Hob thinks before it answers: picked beside the mic, kept in settings. */
+/** How long Khaled Chat thinks before it answers: picked beside the mic, kept in settings. */
 export type Effort = 'quick' | 'normal' | 'deep'
 
 export const EFFORTS: { id: Effort; label: string; description: string }[] = [

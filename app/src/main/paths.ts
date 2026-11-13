@@ -21,11 +21,11 @@ export function makePaths(userData: string) {
     runTmp: join(userData, 'run-tmp'),
     /** plugins the user added */
     plugins: join(userData, 'plugins'),
-    /** Hob's eyes: the vision model and llama.cpp's server */
+    /** Khaled Chat's eyes: the vision model and llama.cpp's server */
     get vision() { return join(downloads, 'vision') },
-    /** downloads go to a Hob folder there from now on (a drive with more space) */
+    /** downloads go to a Khaled Chat folder there from now on (a drive with more space) */
     setDownloads(dir: string) {
-      downloads = join(dir, 'Hob')
+      downloads = join(dir, 'Khaled Chat')
       updateSettings(settings, { downloadsDir: downloads })
       makeDownloadDirs()
     },

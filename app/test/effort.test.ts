@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { EFFORTS, effortBudgets } from '../src/shared/effort'
 
-it('Normal thinks as Hob always has; Quick less, Deep more', () => {
+it('Normal thinks as Khaled Chat always has; Quick less, Deep more', () => {
   expect(effortBudgets('normal', false)).toEqual({ thoughtBudget: 256, thoughtBudgetWithTools: 8192 })
   expect(effortBudgets('normal', true)).toEqual({ thoughtBudget: 8192, thoughtBudgetWithTools: 8192 })
   const q = effortBudgets('quick', true), n = effortBudgets('normal', true), d = effortBudgets('deep', true)

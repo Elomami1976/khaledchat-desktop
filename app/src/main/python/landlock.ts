@@ -1,5 +1,5 @@
 /** Python start-up step for the Linux sandbox (Landlock). Written next to each run's script, then runs it. */
-export const LANDLOCK_PY = `# Hob's Linux sandbox: limits this Python with Landlock (kernel 5.13+), then runs the code.
+export const LANDLOCK_PY = `# Khaled Chat's Linux sandbox: limits this Python with Landlock (kernel 5.13+), then runs the code.
 # Writes: the chat folder and temp. Reads: system files, the runtime, temp and allowed folders. Runs programs: only the runtime's.
 # Network (kernel 6.7+): none, unless HOB_SB_NET=1. Without Landlock (older kernels) the code runs unlimited.
 import ctypes, json, os, platform, sys

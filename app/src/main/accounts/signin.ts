@@ -42,8 +42,8 @@ export async function signIn(p: Provider, open: (url: string) => Promise<void>, 
     if (u.searchParams.get('state') !== state) { res.writeHead(400).end(); return }
     const error = u.searchParams.get('error') ?? undefined
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(error
-      ? PAGE(t('Not connected'), t('Nothing was shared with Hob. You can close this tab.'))
-      : PAGE(t('You’re connected'), t('You can close this tab and go back to Hob.')))
+      ? PAGE(t('Not connected'), t('Nothing was shared with Khaled Chat. You can close this tab.'))
+      : PAGE(t('You’re connected'), t('You can close this tab and go back to Khaled Chat.')))
     done({ code: u.searchParams.get('code') ?? undefined, error })
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))

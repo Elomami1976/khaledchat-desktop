@@ -2,9 +2,9 @@ import { existsSync, renameSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import type { Store } from './store'
 
-/** The app was called Garth (before that Mabel, Hob and Thrum; Hob is its name again): carry an existing profile over, once, never over a newer one. */
+/** The app was called Garth (before that Mabel, Khaled Chat and Thrum; Khaled Chat is its name again): carry an existing profile over, once, never over a newer one. */
 export function migrateProfile(appData: string) {
-  const to = join(appData, 'Hob')
+  const to = join(appData, 'Khaled Chat')
   if (existsSync(to)) return
   // the app's earlier names, newest first
   for (const [name, db] of [['Garth', 'garth.db'], ['Mabel', 'mabel.db'], ['Thrum', 'thrum.db']]) {
@@ -18,7 +18,7 @@ export function migrateProfile(appData: string) {
   }
 }
 
-/** Move the chat files folder (e.g. ~/Documents/Garth → ~/Documents/Hob) and repoint saved chats. */
+/** Move the chat files folder (e.g. ~/Documents/Garth → ~/Documents/Khaled Chat) and repoint saved chats. */
 export function migrateFilesDir(from: string, to: string, store: Store) {
   if (!existsSync(from) || existsSync(to)) return
   renameSync(from, to)

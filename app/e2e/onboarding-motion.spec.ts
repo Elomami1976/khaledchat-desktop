@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { SetupState } from '../src/shared/types'
 
-test('Hob travels through setup into chat without fading out or losing a fast update', async () => {
+test('Khaled Chat travels through setup into chat without fading out or losing a fast update', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
     ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-motion-')),
   } })
@@ -33,7 +33,7 @@ test('Hob travels through setup into chat without fading out or losing a fast up
     await send(recommendation)
     await expect(root).toHaveAttribute('data-motion-count', '2')
     await expect(root).toHaveAttribute('data-mascot-snapshot-opacity', '1')
-    const setupMascot = page.getByTestId('mascot')
+    const setupMascot = page.getByTestId('brand-logo')
     await expect(setupMascot).toHaveCount(1)
     await expect(setupMascot).toHaveCSS('view-transition-name', 'hob-setup')
     const target = { id: 'gemma-4-26b-a4b', name: 'Gemma 4 26B', sizeGB: 14.44, estTokPerSec: 40, blurb: 'fast' }
@@ -43,11 +43,11 @@ test('Hob travels through setup into chat without fading out or losing a fast up
     await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '80')
     await expect(root).toHaveAttribute('data-motion-count', '3')
     await send({ phase: 'ready', model: target, liteMode: false })
-    await expect(page.getByRole('heading', { name: 'What are we working on?' })).toBeVisible()
+    await expect(page.getByTestId('welcome-greeting')).toBeVisible()
     await expect(root).toHaveAttribute('data-motion-count', '4')
     await expect(root).toHaveAttribute('data-mascot-snapshot-opacity', '1')
-    await expect(page.locator('[data-testid=mascot]:visible')).toHaveCount(1)
-    await expect(page.locator('.chat-greeting').getByTestId('mascot')).toHaveCSS('view-transition-name', 'hob-setup')
+    await expect(page.locator('[data-testid=brand-logo]:visible')).toHaveCount(1)
+    await expect(page.locator('.chat-greeting').getByTestId('brand-logo')).toHaveCSS('view-transition-name', 'hob-setup')
 
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await send({ phase: 'probing', firstRun: true })

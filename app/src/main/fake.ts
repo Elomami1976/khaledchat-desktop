@@ -37,7 +37,7 @@ export class FakeEngine implements Engine {
     if (first.startsWith('__tools__ ')) {
       const results: string[] = []
       // "__tools__ [...]\n---\nreply": the reply to give after the tools, when a test needs a particular one
-      // what Hob read from attached files comes after the message and has --- lines of its own
+      // what Khaled Chat read from attached files comes after the message and has --- lines of its own
       const body = said.slice(said.indexOf('__tools__ ') + '__tools__ '.length).split('\n\n[Attached: ')[0]
       const [calls, given] = body.includes('\n---\n') ? body.split('\n---\n') : [first.slice('__tools__ '.length), undefined]
       for (const [name, args] of JSON.parse(calls) as [string, unknown][]) {
@@ -90,20 +90,20 @@ export class FakeEngine implements Engine {
       await new Promise((r) => setTimeout(r, 1500))
       return `All done. ${r.split('\n')[0]}`
     }
-    // says it renamed files without doing it; after Hob's check, owns up (or with "stubborn", says it again)
+    // says it renamed files without doing it; after Khaled Chat's check, owns up (or with "stubborn", says it again)
     if (first.startsWith('__ask__ ')) {
       if (h.onTool) await h.onTool('list_files', { path: first.slice('__ask__ '.length) })
       return "Here's my plan: read the dates, then rename. Let me know if you'd like me to proceed."
     }
-    if (said.startsWith('[Note from Hob') && said.includes("don't ask whether to go ahead")) return 'Renamed them.'
-    if (said.startsWith('[Note from Hob') && said.includes('you stopped before finishing')) return 'Finished it.'
+    if (said.startsWith('[Note from Khaled Chat') && said.includes("don't ask whether to go ahead")) return 'Renamed them.'
+    if (said.startsWith('[Note from Khaled Chat') && said.includes('you stopped before finishing')) return 'Finished it.'
     // a small model that still only says it: the reply gets an honest note
-    if (said.startsWith('[Note from Hob') && said.includes('talks about a chart')) return 'Her er diagrammet.'
+    if (said.startsWith('[Note from Khaled Chat') && said.includes('talks about a chart')) return 'Her er diagrammet.'
     // does a step, then stops without a word
     if (said === '__quit__') { if (h.onTool) await h.onTool('list_files', {}); return '' }
     if (first.startsWith('__claim__')) return 'The files have been renamed. All new names are in ~/Desktop/hob-test.'
-    if (said.startsWith('[Note from Hob')) {
-      const asked = [...req.messages].reverse().find((m) => m.role === 'user' && !m.content.startsWith('[Note from Hob'))?.content ?? ''
+    if (said.startsWith('[Note from Khaled Chat')) {
+      const asked = [...req.messages].reverse().find((m) => m.role === 'user' && !m.content.startsWith('[Note from Khaled Chat'))?.content ?? ''
       return asked.includes('stubborn') ? 'Done, the files have been renamed.' : "Sorry, I haven't renamed them yet. I only made a list of the new names."
     }
     if (said === '__saved__') return 'Jeg har gemt filen indkob.txt med din indkøbsliste.'

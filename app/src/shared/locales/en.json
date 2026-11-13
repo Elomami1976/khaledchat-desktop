@@ -70,5 +70,9 @@
   "{count} tries": {
     "one": "{count} try",
     "other": "{count} tries"
+  },
+  "{name}, {count} threads": {
+    "one": "{name}, {count} threads",
+    "other": "{name}, {count} threads"
   }
 }

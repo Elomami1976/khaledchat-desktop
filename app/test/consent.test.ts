@@ -316,7 +316,7 @@ describe('network at start-up', () => {
     const index = readFileSync(join(__dirname, '../src/main/index.ts'), 'utf8')
     expect(index).not.toMatch(/CATALOG_URL|loadCatalog\(|raw\.githubusercontent/)
     expect(index).not.toMatch(/startUpdates|electron-updater/)
-    // Hob's background installs once chat worked: image support, dictation, code tools and web search
+    // Khaled Chat's background installs once chat worked: image support, dictation, code tools and web search
     expect(index).not.toMatch(/=> \{ if \([^)]*\) vision\.start\(\) \}|fetchingSpeech|void python\.ensure\(\)|ensureSearxng\(\)\.catch/)
   })
   it('web access is off unless switched on', async () => {

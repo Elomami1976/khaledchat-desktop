@@ -25,7 +25,7 @@ export function useDictation(onText: (text: string) => void) {
   async function start() {
     setError(null)
     // the system prompt appears here the first time; after a "no", point to Settings
-    if (!(await hob.speech.mic())) return setError({ text: t('Hob needs microphone access for dictation.'), micSettings: true })
+    if (!(await hob.speech.mic())) return setError({ text: t('Khaled Chat needs microphone access for dictation.'), micSettings: true })
     if (!prepared.current) {
       // Khaled Chat: the dictation model is downloaded only after the person confirms it
       if (!hob.fake) {
@@ -44,7 +44,7 @@ export function useDictation(onText: (text: string) => void) {
       console.error(err)
       const name = (err as Error).name
       setError(name === 'NotAllowedError' || name === 'SecurityError'
-        ? { text: t('Hob needs microphone access for dictation.'), micSettings: true }
+        ? { text: t('Khaled Chat needs microphone access for dictation.'), micSettings: true }
         : { text: name === 'NotFoundError' ? t('No microphone found.') : t("Couldn't start the microphone. Try again.") })
     }
   }

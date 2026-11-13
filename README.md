@@ -1,33 +1,42 @@
 <p align="center">
-  <img src="docs/assets/hob-logo.png" width="96" height="96" alt="Hob">
+  <img src="app/src/renderer/src/assets/brand/khaled-chat-horizontal-light.svg" width="360" alt="Khaled Chat">
 </p>
 
-<h1 align="center">Hob</h1>
+<p align="center"><b>Your AI. Your Device. Your Privacy.</b><br>
+Local, private AI chat for Windows. Free and open source.<br>
+<a href="https://khaledchat.com">khaledchat.com</a></p>
 
-<p align="center">
-  An easier way to use AI on your own computer.<br>
-  A free, open-source alternative to Claude and ChatGPT.
-</p>
+## What it is
 
-<p align="center">
-  <a href="https://hob.chat?utm_source=github&utm_medium=readme&utm_campaign=hob"><b>Visit hob.chat →</b></a> &nbsp;·&nbsp;
-  Download for <a href="https://github.com/FrigadeHQ/hob/releases/latest/download/Hob-mac-arm64.dmg">Mac</a> · <a href="https://github.com/FrigadeHQ/hob/releases/latest/download/Hob-windows-x64.exe">Windows</a> · <a href="https://github.com/FrigadeHQ/hob/releases/latest/download/Hob-linux-x86_64.AppImage">Linux</a><br>
-</p>
+Khaled Chat runs open-weight AI models (GGUF, via [node-llama-cpp](https://github.com/withcatai/node-llama-cpp)) on your own computer.
+- **No account, subscription or cloud AI service.** Chats, files and models stay on your computer.
+- **Nothing is downloaded without your OK.** Each model or optional component asks first, showing its size, source, destination and license.
+- **Web access is off by default.**
 
-<br>
+> **Status: release candidate in development.** Not yet published or signed. See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for open blockers.
 
-<p align="center">
-  <img src="docs/assets/screenshot.png" width="946" alt="Hob reading a sales spreadsheet in a project, charting revenue by region and summing up what stands out">
-</p>
+## Based on Hob
 
-<br>
+Khaled Chat is a fork of [Hob](https://github.com/FrigadeHQ/hob) by Frigade (MIT License). Hob's copyright notice is kept in [LICENSE](LICENSE).
+- The unmodified upstream is tagged `hob-baseline-0.2.6`.
+- Hob's original README is in [docs/HOB-UPSTREAM-README.md](docs/HOB-UPSTREAM-README.md).
 
-<p align="center">
-  Fill out PDFs, work through documents, and much more. Free, private, and works offline.<br>
-  Hob picks the best frontier open-weight model that fits your computer and sets everything up for you.
-</p>
-<p></p>
-<p align="center">
-  <a href="docs/README.md">Help</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="LICENSE">MIT license</a><br><br>
-  Made by <a href="https://frigade.com?utm_source=github&utm_medium=readme&utm_campaign=hob">Frigade</a>.
-</p>
+## Requirements
+
+- **System:** Windows 10 or 11, 64-bit (x64). Development and tests ran on Windows 10 22H2. Windows 11 is untested.
+- **Memory:** 8 GB RAM or more. Small models (about 1–2 GB files) are the realistic choice at 8 GB.
+- **Disk:** free space for the models you choose (1–20 GB each).
+- **Graphics:** optional. The engine uses CUDA or Vulkan when available, otherwise the processor.
+
+## Documentation
+
+- [ARCHITECTURE.md](ARCHITECTURE.md): how the app is put together
+- [DEVELOPMENT.md](DEVELOPMENT.md): setting up and working on it
+- [BUILDING.md](BUILDING.md): building the app and the installer
+- [TESTING.md](TESTING.md): tests and latest results
+- [PRIVACY.md](PRIVACY.md): what stays local, and every permitted network use
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): licenses
+- [CHANGELOG.md](CHANGELOG.md)
+- [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)
+- [docs/khaled-chat/](docs/khaled-chat/): milestone reports and audits
+- [docs/khaled-chat/PROGRESS.md](docs/khaled-chat/PROGRESS.md): progress log

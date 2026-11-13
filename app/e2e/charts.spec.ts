@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
-test('charts: Hob draws them in the chat, and they download as PNG', async () => {
+test('charts: Khaled Chat draws them in the chat, and they download as PNG', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
   const errors: string[] = []

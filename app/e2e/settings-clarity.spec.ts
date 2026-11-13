@@ -69,7 +69,7 @@ test('settings explain reply size, unavailable models, and optional image suppor
       await page.screenshot({ path: join(process.env.HOB_SHOTS, 'storage.png'), scale: 'css' })
       await page.getByTestId('settings-nav-model').click()
     }
-    // Khaled Chat: only the confirmed model was downloaded (Hob also fetched a starter model, shown here as a spare)
+    // Khaled Chat: only the confirmed model was downloaded (Khaled Chat also fetched a starter model, shown here as a spare)
     await expect(page.getByTestId('model-delete')).toHaveCount(0)
     await expect(page.getByTestId('settings-model').filter({ hasText: 'Gemma 4 E4B' }).getByTestId('model-use')).toHaveText('Download & use…')
     await expect(page.getByTestId('status')).toHaveText(/^Ready$/)

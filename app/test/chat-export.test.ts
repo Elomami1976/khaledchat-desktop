@@ -17,7 +17,7 @@ it('writes the title, each speaker, the words, and attached file names', () => {
     ],
     labels,
   )
-  expect(md).toBe('# Trip notes\n\n**You**\n\nhello\n\n_Attached sales.csv_\n\n**Hob**\n\nYou said: hello\n')
+  expect(md).toBe('# Trip notes\n\n**You**\n\nhello\n\n_Attached sales.csv_\n\n**Khaled Chat**\n\nYou said: hello\n')
 })
 
 it('skips a reply with no words and no files', () => {

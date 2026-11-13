@@ -2,8 +2,8 @@
   "id": "calendar-mail",
   "name": "Calendar & Mail",
   "version": "1.0.0",
-  "description": "Your calendar and email, through the Mac's own Calendar and Mail apps, with every account added there. Hob writes email drafts; you send them.",
-  "author": "Hob",
+  "description": "Your calendar and email, through the Mac's own Calendar and Mail apps, with every account added there. Khaled Chat writes email drafts; you send them.",
+  "author": "Khaled Chat",
   "icon": "calendar",
   "platforms": [
     "darwin"

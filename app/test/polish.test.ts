@@ -18,7 +18,7 @@ it('files location must be an absolute, specific folder', () => {
   expect(validFilesDir('relative/dir')).toBe(false)
   expect(validFilesDir('/')).toBe(false)
   expect(validFilesDir(homedir())).toBe(false)
-  expect(validFilesDir(join(homedir(), 'Documents', 'Hob'))).toBe(true)
+  expect(validFilesDir(join(homedir(), 'Documents', 'Khaled Chat'))).toBe(true)
 })
 
 it("a chat's own folder (or a folder containing it) can't be added to itself", () => {

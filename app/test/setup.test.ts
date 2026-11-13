@@ -380,7 +380,7 @@ describe('SetupController disk re-check', () => {
     let dir = data
     const { c } = setup({
       get modelsDir() { return join(dir, 'models') },
-      downloads: { dir: () => dir, move: (d) => { dir = join(d, 'Hob'); mkdirSync(join(dir, 'models'), { recursive: true }) } },
+      downloads: { dir: () => dir, move: (d) => { dir = join(d, 'Khaled Chat'); mkdirSync(join(dir, 'models'), { recursive: true }) } },
       // C: is nearly full, the other drive has room
       getHardware: async () => ({ ...m1max, freeDiskGB: dir === data ? 5 : 500 }),
     })
@@ -388,13 +388,13 @@ describe('SetupController disk re-check', () => {
     expect(c.state).toMatchObject({ phase: 'choose', downloadsDir: data, needsDiskGB: expect.any(Number) })
     expect((c.state as { needsDiskGB: number }).needsDiskGB).toBeGreaterThan(0)
     await c.pickDownloads(drive)
-    expect(c.state).toMatchObject({ phase: 'choose', downloadsDir: join(drive, 'Hob'), needsDiskGB: 0 })
+    expect(c.state).toMatchObject({ phase: 'choose', downloadsDir: join(drive, 'Khaled Chat'), needsDiskGB: 0 })
     await c.confirm()
     expect(c.state.phase).toBe('ready')
-    expect(readdirSync(join(drive, 'Hob', 'models')).some((f) => f.endsWith('.gguf'))).toBe(true)
+    expect(readdirSync(join(drive, 'Khaled Chat', 'models')).some((f) => f.endsWith('.gguf'))).toBe(true)
     // only before the first download
     await c.pickDownloads(data)
-    expect(dir).toBe(join(drive, 'Hob'))
+    expect(dir).toBe(join(drive, 'Khaled Chat'))
   })
   it('retry on the choose screen re-checks disk after the user frees space', async () => {
     let free = 20

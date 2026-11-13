@@ -1,6 +1,6 @@
 {
   "name": "@hob/app",
-  "version": "0.2.6",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
@@ -48,9 +48,13 @@
     "vite": "^8.3.4",
     "vitest": "^5.0.4"
   },
-  "productName": "Hob",
-  "description": "The full AI coworker experience. None of the cloud.",
-  "author": "Frigade",
+  "productName": "Khaled Chat",
+  "description": "Your AI. Your Device. Your Privacy. Local, private AI chat for Windows.",
+  "author": {
+    "name": "Khaled Chat contributors",
+    "url": "https://khaledchat.com"
+  },
   "license": "MIT",
-  "repository": "github:FrigadeHQ/hob"
+  "repository": "github:FrigadeHQ/hob",
+  "homepage": "https://khaledchat.com"
 }

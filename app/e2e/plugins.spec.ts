@@ -63,7 +63,7 @@ test('skills start empty: nothing in the / menu, and Skills invites you to make 
   await page.getByTestId('open-settings').click()
   await page.getByTestId('settings-nav-skills').click()
   await expect(page.getByTestId('skill-card')).toHaveCount(0)
-  await expect(page.getByTestId('settings')).toContainText('Teach Hob something')
+  await expect(page.getByTestId('settings')).toContainText('Teach Khaled Chat something')
   await app.close()
 })
 
@@ -78,7 +78,7 @@ test('connecting an online app by link signs in through the browser and shows on
   await page.getByTestId('connect-command').fill(fx.url)
   await expect(page.getByTestId('connect-dialog')).toContainText('Headers (optional)')
   await page.getByTestId('connect-save').click()
-  await expect(page.getByTestId('plugins-notice')).toHaveText('Connected. Hob can use it in your next message.')
+  await expect(page.getByTestId('plugins-notice')).toHaveText('Connected. Khaled Chat can use it in your next message.')
   expect(fx.state.registered).toHaveLength(1)
   const card = page.locator('[data-testid=plugin][data-id=local-app]')
   await expect(card).toContainText('Connects to an online service')
@@ -123,7 +123,7 @@ test('an .mcpb bundle is added with its icon and asks for the settings it needs'
   await app.close()
 })
 
-test('Hob saves a skill with a script: the card shows the code, and it lands in the / menu', async () => {
+test('Khaled Chat saves a skill with a script: the card shows the code, and it lands in the / menu', async () => {
   const { app, page } = await launch()
   const save = { name: 'spending', description: 'Monthly spending chart from a bank CSV', instructions: 'Run the script on the CSV.', files: { 'make_report.py': "import sys\nprint('report for', sys.argv[1])\n" } }
   await page.getByTestId('composer-input').fill(`__tools__ [["save_skill",${JSON.stringify(save)}]]`)

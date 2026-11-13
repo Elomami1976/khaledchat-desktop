@@ -34,7 +34,7 @@ export function Segmented<T extends string>({ value, options, onChange, testId }
 
 export const Heading = ({ children }: { children: React.ReactNode }) => <h2 className="mt-8 mb-1 text-body font-semibold first:mt-0">{children}</h2>
 
-/** the models this computer can run, and Hob's image model */
+/** the models this computer can run, and Khaled Chat's image model */
 export function ModelSettings() {
   const [models, setModels] = useState<ModelRow[]>([])
   const [showOther, setShowOther] = useState(false)
@@ -63,7 +63,7 @@ export function ModelSettings() {
   return (
     <>
       <Heading>{t('Models')}</Heading>
-      <p className="mb-3 text-meta text-muted">{t('Choose a chat model for this computer. Downloading another model also switches Hob to it.')}</p>
+      <p className="mb-3 text-meta text-muted">{t('Choose a chat model for this computer. Downloading another model also switches Khaled Chat to it.')}</p>
           <div data-testid="model-list" className="rounded-card border border-line bg-surface divide-y divide-line">
             <p className="px-4 py-2 text-meta font-medium text-muted">{t('Chat models')}</p>
             {models.filter((m) => m.available).map((m) => (
@@ -181,7 +181,7 @@ export function PrivacySettings() {
   return (
     <>
       <Heading>{t('Privacy')}</Heading>
-      <p className="mb-2 text-meta text-muted">{t('Hob runs on this computer. Your chats and files never leave it.')}</p>
+      <p className="mb-2 text-meta text-muted">{t('Khaled Chat runs on this computer. Your chats and files never leave it.')}</p>
       <Row label={t('Web access')} help={t('Off by default. Lets the assistant search the web, read pages, and let its code fetch data. Leave it off to stay offline.')}>
         <Switch testId="web-toggle" label={t('Web access')} on={!!s?.webAccess} onChange={(on) => s && void hob.settings.set({ webAccess: on }).then(setS)} />
       </Row>
@@ -189,7 +189,7 @@ export function PrivacySettings() {
   )
 }
 
-/** where chat files go, how much space Hob uses, deleting every chat, and removing Hob */
+/** where chat files go, how much space Khaled Chat uses, deleting every chat, and removing Khaled Chat */
 export function FilesSettings({ onAllChatsDeleted }: { onAllChatsDeleted(): void }) {
   const [s, setS] = useState<UserSettings | null>(null)
   const [storage, setStorage] = useState<StorageUsage | null>(null)
@@ -225,29 +225,29 @@ export function FilesSettings({ onAllChatsDeleted }: { onAllChatsDeleted(): void
           <div className="flex items-center justify-between gap-6 rounded-card border border-danger/30 px-4 py-3">
             <div>
               <p className="font-medium">{t('Delete all chats')}</p>
-              <p className="text-ui text-muted">{t('Removes every chat from Hob. Files they made stay in your files folder. This can’t be undone.')}</p>
+              <p className="text-ui text-muted">{t('Removes every chat from Khaled Chat. Files they made stay in your files folder. This can’t be undone.')}</p>
             </div>
             <button data-testid="delete-all-chats" onClick={() => void hob.chats.list().then((c) => { setChatCount(c.length); setConfirmDelete(true) })}
               className="shrink-0 rounded-control border border-danger/40 px-3 py-1.5 text-ui font-medium text-danger transition-colors hover:bg-danger/10">
               {t('Delete all chats')}
             </button>
           </div>
-          {/* dragging Hob to the Trash leaves its models behind, gigabytes of them */}
+          {/* dragging Khaled Chat to the Trash leaves its models behind, gigabytes of them */}
           <div className="mt-3 flex items-center justify-between gap-6 rounded-card border border-danger/30 px-4 py-3">
             <div>
-              <p className="font-medium">{t('Remove Hob')}</p>
-              <p className="text-ui text-muted">{t('Deletes Hob, its models, your chats and settings. Files your chats made stay in your files folder.')}</p>
+              <p className="font-medium">{t('Remove Khaled Chat')}</p>
+              <p className="text-ui text-muted">{t('Deletes Khaled Chat, its models, your chats and settings. Files your chats made stay in your files folder.')}</p>
             </div>
             <button data-testid="remove-hob" onClick={() => setConfirmRemove(true)}
               className="shrink-0 rounded-control border border-danger/40 px-3 py-1.5 text-ui font-medium text-danger transition-colors hover:bg-danger/10">
-              {t('Remove Hob')}
+              {t('Remove Khaled Chat')}
             </button>
           </div>
         </section>
       </div>
       {confirmDelete && (
         <Dialog title={t('Delete all {count} chats?', { count: chatCount })} testId="confirm-delete-all" onClose={() => setConfirmDelete(false)}>
-          <p className="text-ui text-ink-soft">{t('Every chat will be removed from Hob. Files they made stay in your files folder.')}</p>
+          <p className="text-ui text-ink-soft">{t('Every chat will be removed from Khaled Chat. Files they made stay in your files folder.')}</p>
           <p className="mt-2 text-ui font-medium">{t('This can’t be undone.')}</p>
           <div className="mt-5 flex justify-end gap-2">
             <button autoFocus onClick={() => setConfirmDelete(false)} className={button.secondary}>{t('Cancel')}</button>
@@ -259,14 +259,14 @@ export function FilesSettings({ onAllChatsDeleted }: { onAllChatsDeleted(): void
         </Dialog>
       )}
       {confirmRemove && (
-        <Dialog title={t('Remove Hob?')} testId="confirm-remove-hob" onClose={() => setConfirmRemove(false)}>
-          <p className="text-ui text-ink-soft">{t('Hob, its models, your chats and settings will be deleted, and Hob will close. Files your chats made stay in your files folder.')}</p>
+        <Dialog title={t('Remove Khaled Chat?')} testId="confirm-remove-hob" onClose={() => setConfirmRemove(false)}>
+          <p className="text-ui text-ink-soft">{t('Khaled Chat, its models, your chats and settings will be deleted, and Khaled Chat will close. Files your chats made stay in your files folder.')}</p>
           <p className="mt-2 text-ui font-medium">{t('This can’t be undone.')}</p>
           <div className="mt-5 flex justify-end gap-2">
             <button autoFocus onClick={() => setConfirmRemove(false)} className={button.secondary}>{t('Cancel')}</button>
             <button data-testid="confirm-remove-hob-yes" onClick={() => void hob.storage.removeHob()}
               className="inline-flex items-center rounded-control bg-danger px-3 py-1.5 text-ui font-medium text-white transition-opacity hover:opacity-90">
-              {t('Remove Hob')}
+              {t('Remove Khaled Chat')}
             </button>
           </div>
         </Dialog>

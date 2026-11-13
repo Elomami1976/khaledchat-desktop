@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Cpu, FolderOpen, Monitor, Moon, Plug, Puzzle, Search, Settings as Cog, Shield, Sparkles, Sun, X } from 'lucide-react'
+import { CircuitBoard, Cpu, FolderOpen, Info, Monitor, Moon, Plug, Puzzle, Search, Settings as Cog, Shield, Sparkles, Sun, X } from 'lucide-react'
 import type { Theme, UserSettings } from '../../../shared/agent'
 import type { PluginResult } from '../../../shared/plugins'
 import { hob } from '../api'
@@ -9,13 +9,15 @@ import { LOCALES, msg, t } from '../../../shared/i18n'
 import { applyLanguage } from '../i18n'
 import { FilesSettings, Heading, ModelSettings, PrivacySettings, Row, Segmented } from '../screens/Settings'
 import { Plugins, type Tab } from '../screens/Plugins'
+import { AboutSettings, FirstNameRow, HardwareSettings } from './SettingsExtra'
 
-export type Section = 'general' | 'model' | 'privacy' | 'files' | Tab
+export type Section = 'general' | 'model' | 'hardware' | 'privacy' | 'files' | 'about' | Tab
 
 const NAV: { group: string; items: { id: Section; label: string; icon: typeof Cog; words: string }[] }[] = [
   { group: msg('Settings'), items: [
-    { id: 'general', label: msg('General'), icon: Cog, words: 'language appearance theme dark light text size dictation voice' },
+    { id: 'general', label: msg('General'), icon: Cog, words: 'name greeting language appearance theme dark light text size dictation voice' },
     { id: 'model', label: msg('Model'), icon: Cpu, words: 'ai model download smarter images vision' },
+    { id: 'hardware', label: msg('Hardware'), icon: CircuitBoard, words: 'cpu gpu ram vram memory graphics processor computer' },
     { id: 'privacy', label: msg('Privacy'), icon: Shield, words: 'web access internet offline search' },
     { id: 'files', label: msg('Files & storage'), icon: FolderOpen, words: 'folder storage space delete chats remove uninstall' },
   ] },
@@ -23,6 +25,9 @@ const NAV: { group: string; items: { id: Section; label: string; icon: typeof Co
     { id: 'skills', label: msg('Skills'), icon: Sparkles, words: 'skills how-to slash commands' },
     { id: 'connectors', label: msg('Connectors'), icon: Plug, words: 'connectors apps mcp google calendar email gmail notion' },
     { id: 'plugins', label: msg('Plugins'), icon: Puzzle, words: 'plugins bundles tools pdf code web search' },
+  ] },
+  { group: msg('Khaled Chat'), items: [
+    { id: 'about', label: msg('About'), icon: Info, words: 'version website github license hob' },
   ] },
 ]
 
@@ -35,8 +40,10 @@ function GeneralSettings() {
   const pickLanguage = (language: string) => void hob.settings.set({ language }).then((next) => { setS(next); applyLanguage(next.locale) })
   return (
     <>
+      <Heading>{t('You')}</Heading>
+      <FirstNameRow />
       <Heading>{t('Language')}</Heading>
-      <Row label={t('Language')} help={t("Hob's menus and buttons. Hob answers in the language you write in.")}>
+      <Row label={t('Language')} help={t("Khaled Chat's menus and buttons. Khaled Chat answers in the language you write in.")}>
         <select data-testid="settings-language" value={s?.language ?? ''} onChange={(e) => pickLanguage(e.target.value)}
           className="rounded-control border border-line-strong bg-surface px-2 py-1 text-ui outline-none">
           <option value="">{t('Same as computer ({name})', { name: LOCALES.find((l) => l.id === s?.systemLocale)?.name ?? 'English' })}</option>
@@ -49,7 +56,7 @@ function GeneralSettings() {
           { id: 'system', label: <Monitor size={15} />, title: t('Match the system') }, { id: 'light', label: <Sun size={15} />, title: t('Light') }, { id: 'dark', label: <Moon size={15} />, title: t('Dark') },
         ]} />
       </Row>
-      <Row label={t('Reply text size')} help={t("Changes Hob's replies in chat.")}>
+      <Row label={t('Reply text size')} help={t("Changes Khaled Chat's replies in chat.")}>
         <Segmented<TextSize> testId="text-size" value={size} onChange={(v) => { setSize(v); appearance.setTextSize(v) }} options={[
           { id: 'small', label: t('Small') }, { id: 'medium', label: t('Medium') }, { id: 'large', label: t('Large') },
         ]} />
@@ -113,7 +120,9 @@ export function SettingsOverlay({ section, onSection, onClose, opened, onAllChat
           <div key={section} className="fade-in mx-auto max-w-2xl px-8 pt-8 pb-12">
             {section === 'general' && <GeneralSettings />}
             {section === 'model' && <ModelSettings />}
+            {section === 'hardware' && <HardwareSettings />}
             {section === 'privacy' && <PrivacySettings />}
+            {section === 'about' && <AboutSettings />}
             {section === 'files' && <FilesSettings onAllChatsDeleted={onAllChatsDeleted} />}
             {(section === 'skills' || section === 'connectors' || section === 'plugins') && <Plugins section={section} onSection={onSection} opened={opened} onTryPrompt={onTryPrompt} />}
           </div>

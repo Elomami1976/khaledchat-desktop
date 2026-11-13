@@ -8,7 +8,7 @@ export function chatMarkdown(chat: { title: string }, messages: StoredMessage[],
     const text = (m.role === 'assistant' ? shownReply(m.content) : m.content).trim()
     const names = m.attachments.map((a) => a.name)
     if (!text && !names.length) continue
-    out.push(`**${m.role === 'user' ? labels.you : 'Hob'}**`, '')
+    out.push(`**${m.role === 'user' ? labels.you : 'Khaled Chat'}**`, '')
     if (text) out.push(text, '')
     if (names.length) out.push(`_${labels.attached(names.join(', '))}_`, '')
   }

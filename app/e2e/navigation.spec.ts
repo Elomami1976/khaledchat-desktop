@@ -178,7 +178,7 @@ test('hiding the sidebar slides it away, and it comes back', async () => {
   await app.close()
 })
 
-test('Windows and Linux: no title bar or menu bar; the window buttons sit over the top-right corner, clear of Hob\'s own', async () => {
+test('Windows and Linux: no title bar or menu bar; the window buttons sit over the top-right corner, clear of Khaled Chat\'s own', async () => {
   test.skip(process.platform === 'darwin', 'the Mac keeps its traffic lights')
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
@@ -202,7 +202,7 @@ test('Windows and Linux: no title bar or menu bar; the window buttons sit over t
   await app.close()
 })
 
-test('switching between chats never flashes the new-chat screen (or hides and shows Hob in the corner)', async () => {
+test('switching between chats never flashes the new-chat screen (or hides and shows Khaled Chat in the corner)', async () => {
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()
   await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()

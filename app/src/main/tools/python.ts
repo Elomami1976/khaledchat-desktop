@@ -97,7 +97,7 @@ export function pythonHint(output: string, code = ''): string {
   if (netError) {
     hints.push('Code has no internet unless you run it with internet: true (Web access must be on). Run it again with internet: true.')
   } else if (/PermissionError|Operation not permitted/.test(output)) {
-    hints.push("Hob blocked this: code can only read the chat folder and folders the user gave access to, and can only save in the chat folder. To rename, move or delete the user's files, use move_files, move_file or delete_file. If it's a folder Hob can't see yet, call list_files with its full path and Hob will ask the user.")
+    hints.push("Khaled Chat blocked this: code can only read the chat folder and folders the user gave access to, and can only save in the chat folder. To rename, move or delete the user's files, use move_files, move_file or delete_file. If it's a folder Khaled Chat can't see yet, call list_files with its full path and Khaled Chat will ask the user.")
   }
   if (/(FileNotFoundError|No such file or directory)[^\n]*['"]~/.test(output)) hints.push("Python doesn't understand ~ in paths. Use the full path instead.")
   const missing = /ModuleNotFoundError: No module named '([\w.]+)'/.exec(output)

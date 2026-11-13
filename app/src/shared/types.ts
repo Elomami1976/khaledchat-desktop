@@ -15,12 +15,12 @@ export type ModelOption = ModelSummary & {
   needsDiskGB: number
 }
 
-/** may Hob use Calendar and Mail: granted, denied, notDetermined (not asked yet), notRunning (Mail isn't open), unavailable */
+/** may Khaled Chat use Calendar and Mail: granted, denied, notDetermined (not asked yet), notRunning (Mail isn't open), unavailable */
 export type MacAccess = { calendar: string; mail: string }
 /** Google or Microsoft sign-in for calendar and email: what can be signed in to, and who is */
 export type AccountsState = { available: ('google' | 'microsoft')[]; current: { provider: 'google' | 'microsoft'; email: string } | null }
 
-/** Hob's eyes: the small model that looks at images. off: not downloaded yet (it comes after the main model) */
+/** Khaled Chat's eyes: the small model that looks at images. off: not downloaded yet (it comes after the main model) */
 export type VisionState =
   | { phase: 'off' }
   | { phase: 'downloading'; progress: number }
@@ -61,6 +61,8 @@ export type DownloadInfo = {
 export type ComponentState = { id: 'python' | 'search' | 'speech' | 'vision'; installed: boolean; installing: boolean; progress?: number; error?: string; available: boolean; unavailableReason?: string }
 
 export interface HobApi {
+  /** Khaled Chat: Settings → Hardware */
+  system: { info(): Promise<SystemInfo> }
   /** Khaled Chat: every download is confirmed first; approve() is called only by the confirmation dialog */
   downloads: { info(key: string): Promise<DownloadInfo | { error: string }>; approve(key: string): Promise<boolean> }
   /** optional parts installed only when the person asks for them in Settings */
@@ -97,7 +99,7 @@ export interface HobApi {
     remove(id: string): Promise<void>
     /** keep the chat's first n messages, removing the rest; false while a reply is being written */
     keep(id: string, n: number): Promise<boolean>
-    /** every chat, gone from Hob; their files stay */
+    /** every chat, gone from Khaled Chat; their files stay */
     removeAll(): Promise<void>
     onChanged(cb: () => void): () => void
   }
@@ -118,7 +120,7 @@ export interface HobApi {
     update(id: string, p: ProjectInput): Promise<Project | { error: string }>
     /** its chats stay, outside any project; files aren't touched */
     remove(id: string): Promise<void>
-    /** the folder picker; each folder says why Hob can't use it, if it can't */
+    /** the folder picker; each folder says why Khaled Chat can't use it, if it can't */
     pickFolders(): Promise<FolderCheck[]>
     checkFolders(paths: string[]): Promise<FolderCheck[]>
     /** the main folder, in the file manager */
@@ -155,7 +157,7 @@ export interface HobApi {
     signOut(): Promise<AccountsState>
     onChanged(cb: (s: AccountsState) => void): () => void
   }
-  /** Hob's eyes (the image model) */
+  /** Khaled Chat's eyes (the image model) */
   vision: { getState(): Promise<VisionState>; onState(cb: (s: VisionState) => void): () => void; retry(): Promise<void> }
   /** failed: changes that couldn't be reversed (changed since, or too big to back up) */
   task: { undo(messageId: number): Promise<{ done: boolean; failed: number }> }
@@ -173,13 +175,13 @@ export interface HobApi {
   }
   storage: {
     get(): Promise<StorageUsage>
-    /** models, chats and settings deleted, the app too where it can be, then Hob quits */
+    /** models, chats and settings deleted, the app too where it can be, then Khaled Chat quits */
     removeHob(): Promise<void>
   }
   plugins: {
     list(): Promise<PluginInfo[]>
     setEnabled(id: string, on: boolean): Promise<void>
-    /** choose a plugin folder or .zip and copy it into Hob */
+    /** choose a plugin folder or .zip and copy it into Khaled Chat */
     add(): Promise<PluginResult | null>
     /** developers: use a folder in place, reloaded on change */
     link(): Promise<PluginResult | null>
@@ -214,4 +216,16 @@ export interface HobApi {
     mic(): Promise<boolean>
     openMicSettings(): Promise<void>
   }
+}
+
+/** Khaled Chat: Settings → Hardware. GPU fields come from the engine's probe at setup; null until it has run. */
+export type SystemInfo = {
+  os: string; osVersion: string; arch: string
+  cpuModel: string; logicalCores: number
+  totalRamGB: number; freeRamGB: number
+  freeDiskGB: number | null
+  gpu: { name: string; kind: 'none' | 'unified' | 'discrete'; vramGB: number } | null
+  /** the acceleration the engine found: 'cuda' | 'vulkan' | 'metal', or 'cpu' when none; null before the probe */
+  backend: string | null
+  appVersion: string; electron: string
 }

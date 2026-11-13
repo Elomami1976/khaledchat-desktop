@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { readFile } from 'node:fs/promises'
 import bundledCatalog from '../../../catalog/catalog.json'
 import licenses from '../../../catalog/licenses.json'
+import appPackage from '../../package.json'
 import { makePaths } from './paths'
 import { UtilityEngine } from './engine'
 import { FakeEngine, fakeDownloadDeps } from './fake'
@@ -48,15 +49,15 @@ const FAKE = process.env.HOB_FAKE === '1'
 if (process.platform === 'win32') app.setAppUserModelId('com.frigade.hob')
 /** with HOB_FAKE: the stand-in model, but the real tools (Python, web search, the image model), for the smoke test */
 const REAL_TOOLS = FAKE && process.env.HOB_REAL_TOOLS === '1'
-// One profile folder however Hob is started (dev, packaged, tests): ~/Library/Application Support/Hob etc.
-app.setName('Hob')
+// One profile folder however Khaled Chat is started (dev, packaged, tests): ~/Library/Application Support/Khaled Chat etc.
+app.setName('Khaled Chat')
 // renamed from Garth (and Mabel, Thrum): carry an existing profile (models, chats, settings) over once
 if (!process.env.HOB_USER_DATA) migrateProfile(app.getPath('appData'))
-app.setPath('userData', process.env.HOB_USER_DATA ?? join(app.getPath('appData'), 'Hob'))
+app.setPath('userData', process.env.HOB_USER_DATA ?? join(app.getPath('appData'), 'Khaled Chat'))
 logToFile(join(app.getPath('userData'), 'logs', 'main.log'))
 process.on('unhandledRejection', (err) => console.error('unhandled rejection', err))
 
-// One Hob at a time: a second launch focuses the existing window instead of
+// One Khaled Chat at a time: a second launch focuses the existing window instead of
 // starting a second engine and a second download.
 if (!app.requestSingleInstanceLock()) app.quit()
 app.on('second-instance', () => {
@@ -157,6 +158,8 @@ app.whenReady().then(() => {
   const engine = FAKE ? new FakeEngine() : new UtilityEngine(join(__dirname, 'engine.js'))
   /** the computer, as setup found it (the vision model's room is worked out from it) */
   let hardware: Hardware | undefined
+  /** Khaled Chat: the engine's GPU probe, for Settings → Hardware */
+  let gpuBackend: string | undefined
   const setup = new SetupController({
     engine,
     get modelsDir() { return paths.models },
@@ -168,7 +171,11 @@ app.whenReady().then(() => {
     getHardware: FAKE
       ? async () => ({ os: 'darwin' as const, arch: 'arm64', cpuModel: 'Apple M1 Max', totalRamGB: 32, freeDiskGB: Number(process.env.HOB_FAKE_FREE_GB) || 500, gpu: { kind: 'unified' as const, name: 'Apple M1 Max', vramGB: 24 } })
       // a second try runs without the graphics card if the first one crashed the engine
-      : async () => (hardware = toHardware(await engine.probe().catch(() => engine.probe()), await readSysInfo(paths.models))),
+      : async () => {
+        const probe = await engine.probe().catch(() => engine.probe())
+        gpuBackend = probe.gpuType ? String(probe.gpuType) : 'cpu'
+        return (hardware = toHardware(probe, await readSysInfo(paths.models)))
+      },
     // HOB_LOCAL_CATALOG=1: only the catalog in this build (to try models before they're published)
     // Khaled Chat: the model list bundled with the app; nothing is fetched at start-up
     getCatalog: async () => loadBundledCatalog(bundledCatalog, licenses),
@@ -182,14 +189,14 @@ app.whenReady().then(() => {
     // then the old folder stays the chat files folder, and start-up carries on
     for (const name of ['Garth', 'Mabel', 'Thrum']) {
       const from = join(app.getPath('documents'), name)
-      try { migrateFilesDir(from, join(app.getPath('documents'), 'Hob'), store) } catch (err) {
+      try { migrateFilesDir(from, join(app.getPath('documents'), 'Khaled Chat'), store) } catch (err) {
         console.warn(`couldn't move ${from}; keeping it as the chat files folder`, err)
         updateSettings(paths.settings, { filesDir: from })
         break
       }
     }
   }
-  const filesDir = () => loadSettings(paths.settings).filesDir ?? (process.env.HOB_USER_DATA ? join(paths.root, 'Files') : join(app.getPath('documents'), 'Hob'))
+  const filesDir = () => loadSettings(paths.settings).filesDir ?? (process.env.HOB_USER_DATA ? join(paths.root, 'Files') : join(app.getPath('documents'), 'Khaled Chat'))
   const speech = new SpeechModel(() => paths.speech, realRuntimeDeps)
   const allowed = (p: string) => isInside(filesDir(), p) || isInside(paths.speech, p) || store.listChats().some((c) => isInside(c.dir, p)) || store.knownFolders().some((g) => isInside(g, p))
   protocol.handle('hob-file', async (req) => {
@@ -198,7 +205,7 @@ app.whenReady().then(() => {
     // whole-file read: streaming through net.fetch ran at ~9 MB/s, which made the first dictation take 25 s
     try {
       const body = await readFile(p)
-      // the dictation worker fetches model files from here; only Hob's own pages can reach this scheme
+      // the dictation worker fetches model files from here; only Khaled Chat's own pages can reach this scheme
       return new Response(body, { headers: { 'content-type': mimeOf(p), 'content-length': String(body.length), 'access-control-allow-origin': '*' } })
     } catch {
       return new Response('Not found', { status: 404 })
@@ -240,7 +247,7 @@ app.whenReady().then(() => {
     onChange: () => win?.webContents.send('plugins:changed'),
   })
   app.on('before-quit', () => plugins.close())
-  // Hob's eyes: downloaded after the main model (when Hob "gets smarter"), started when a chat has an image
+  // Khaled Chat's eyes: downloaded after the main model (when Khaled Chat "gets smarter"), started when a chat has an image
   // what the vision model has to share the computer with: the main model, and the memory the graphics chip can use
   const room = async () => {
     const s = setup.state
@@ -283,9 +290,9 @@ app.whenReady().then(() => {
   })
   const removeHob = async () => {
     const plan = removalPlan({ platform: process.platform, packaged: app.isPackaged, profile: !!process.env.HOB_USER_DATA, execPath: process.execPath, appImage: process.env.APPIMAGE, data: app.getPath('userData'), downloads: paths.downloads })
-    // Windows: Hob's uninstaller removes the app and its data
+    // Windows: Khaled Chat's uninstaller removes the app and its data
     removeAfterExit(plan.folders, plan.uninstaller)
-    if (plan.app) await shell.trashItem(plan.app).catch((err) => console.warn('could not move Hob to the Trash', err))
+    if (plan.app) await shell.trashItem(plan.app).catch((err) => console.warn('could not move Khaled Chat to the Trash', err))
     app.quit()
   }
   const components = new Components({
@@ -297,8 +304,16 @@ app.whenReady().then(() => {
     ...(vision.installer ? { vision: { ...vision.installer, get root() { return paths.vision } } } : {}),
     onChange: (list) => win?.webContents.send('components:changed', list),
   })
-  const ipc = registerIpc({ win: () => win, setup, store, python, paths, filesDir, allowed, search, speech: FAKE ? undefined : speech, plugins, vision, accounts, notices, removeHob, fake: FAKE, components, isOwnPage })
-  // Khaled Chat: code tools and web search are not installed once a model is ready (Hob did that quietly); they're
+  const ipc = registerIpc({ win: () => win, setup, store, python, paths, filesDir, allowed, search, speech: FAKE ? undefined : speech, plugins, vision, accounts, notices, removeHob, fake: FAKE, components, isOwnPage,
+    systemInfo: async () => ({
+      os: process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux', osVersion: os.release(), arch: process.arch,
+      cpuModel: os.cpus()[0]?.model?.trim() ?? 'unknown', logicalCores: os.cpus().length,
+      totalRamGB: Math.round(os.totalmem() / 1e8) / 10, freeRamGB: Math.round(os.freemem() / 1e8) / 10,
+      freeDiskGB: hardware?.freeDiskGB ?? null,
+      gpu: hardware ? hardware.gpu : null, backend: FAKE ? 'metal' : gpuBackend ?? null,
+      appVersion: appPackage.version, electron: process.versions.electron,
+    }) })
+  // Khaled Chat: code tools and web search are not installed once a model is ready (Khaled Chat did that quietly); they're
   // optional components. Plugins still start their own local tools.
   let codeToolsStarted = false
   setup.onState((s) => {
@@ -306,7 +321,7 @@ app.whenReady().then(() => {
     codeToolsStarted = true
     plugins.warmUp()
   })
-  // dev runs use the plain Electron bundle; show Hob's icon in the Dock anyway
+  // dev runs use the plain Electron bundle; show Khaled Chat's icon in the Dock anyway
   if (process.platform === 'darwin' && !app.isPackaged && !BACKGROUND) app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   // no Dock icon and no activation: the window can't steal focus
   if (process.platform === 'darwin' && BACKGROUND) app.setActivationPolicy('accessory')

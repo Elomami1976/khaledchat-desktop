@@ -79,7 +79,7 @@ test('a model download in Settings can be cancelled, and chat stays on the curre
   await app.close()
 })
 
-test('Hob starts in the computer’s language, and the language can be changed in Settings', async () => {
+test('Khaled Chat starts in the computer’s language, and the language can be changed in Settings', async () => {
   const de = JSON.parse(readFileSync(join(import.meta.dirname, '../src/shared/locales/de.json'), 'utf8'))
   const userData = mkdtempSync(join(tmpdir(), 'hob-e2e-'))
   const launch = () => electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_SYSTEM_LANGUAGES: 'de-DE,en-US', HOB_USER_DATA: userData } })
@@ -115,7 +115,7 @@ test('Hob starts in the computer’s language, and the language can be changed i
   await app.close()
 })
 
-test('in another language, Hob shows that it’s thinking but not its English thoughts', async () => {
+test('in another language, Khaled Chat shows that it’s thinking but not its English thoughts', async () => {
   const de = JSON.parse(readFileSync(join(import.meta.dirname, '../src/shared/locales/de.json'), 'utf8'))
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_SYSTEM_LANGUAGES: 'de-DE', HOB_USER_DATA: mkdtempSync(join(tmpdir(), 'hob-e2e-')) } })
   const page = await app.firstWindow()

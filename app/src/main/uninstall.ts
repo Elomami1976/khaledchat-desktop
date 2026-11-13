@@ -2,15 +2,15 @@ import { spawn } from 'node:child_process'
 import { posix, win32 } from 'node:path'
 
 type Where = { platform: NodeJS.Platform; packaged: boolean; profile: boolean; execPath: string; appImage: string | undefined; data: string; downloads: string }
-/** folders: deleted once Hob has quit (app data, models on another drive); app: the app itself, to the Trash; uninstaller: Windows' own, which takes app data too */
+/** folders: deleted once Khaled Chat has quit (app data, models on another drive); app: the app itself, to the Trash; uninstaller: Windows' own, which takes app data too */
 export type Removal = { folders: string[]; app?: string; uninstaller?: string }
 
-/** what "Remove Hob" takes away. Dragging Hob to the Trash can't run anything, so the multi-gigabyte models would stay behind. */
+/** what "Remove Khaled Chat" takes away. Dragging Khaled Chat to the Trash can't run anything, so the multi-gigabyte models would stay behind. */
 export function removalPlan(w: Where): Removal {
   const elsewhere = w.downloads !== w.data ? [w.downloads] : []
   // a dev build or a test profile: never touch an installed app
   if (!w.packaged || w.profile) return { folders: [w.data, ...elsewhere] }
-  if (w.platform === 'win32') return { folders: elsewhere, uninstaller: win32.join(win32.dirname(w.execPath), 'Uninstall Hob.exe') }
+  if (w.platform === 'win32') return { folders: elsewhere, uninstaller: win32.join(win32.dirname(w.execPath), 'Uninstall Khaled Chat.exe') }
   if (w.platform === 'darwin') return { folders: [w.data, ...elsewhere], app: posix.resolve(w.execPath, '../../..') }
   return { folders: [w.data, ...elsewhere], app: w.appImage }
 }

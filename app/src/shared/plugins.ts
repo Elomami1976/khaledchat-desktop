@@ -1,4 +1,4 @@
-/** builtin: ships with Hob · installed: copied into Hob · linked: a developer's folder, reloaded on change */
+/** builtin: ships with Khaled Chat · installed: copied into Khaled Chat · linked: a developer's folder, reloaded on change */
 export type PluginSource = 'builtin' | 'installed' | 'linked'
 /** what the plugin can do, in rising order of trust (online: talks to a service on the internet, runs nothing here) */
 export type PluginTrust = 'instructions' | 'builtin' | 'code' | 'network' | 'online' | 'full'
@@ -18,7 +18,7 @@ export type PluginInfo = {
   /** the plugin's own picture (an .mcpb bundle's icon), as a data: URL */
   image?: string
   source: PluginSource
-  /** connector: only links Hob to an outside service (MCP). skills: the user's own skills. plugin: a bundle of skills and tools */
+  /** connector: only links Khaled Chat to an outside service (MCP). skills: the user's own skills. plugin: a bundle of skills and tools */
   kind: 'plugin' | 'connector' | 'skills'
   enabled: boolean
   /** the plugin couldn't load (bad hob-plugin.json, missing files) or its connector failed */

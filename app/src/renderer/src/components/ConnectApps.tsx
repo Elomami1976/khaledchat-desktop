@@ -81,7 +81,7 @@ export function ConnectApps({ onClose, onTry }: { onClose(): void; onTry(prompt:
     <Dialog title={done ? t('Email and calendar connected') : t('Connect your email and calendar')} onClose={onClose} testId="connect-apps">
       {done && <div role="status" className="mb-4 flex items-center gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-600/10 text-emerald-600 dark:text-emerald-400"><Check size={22} strokeWidth={2} aria-hidden="true" /></span>
-        <p className="text-ui text-ink-soft">{t('Connected. Hob can use it in your next message.')}</p>
+        <p className="text-ui text-ink-soft">{t('Connected. Khaled Chat can use it in your next message.')}</p>
       </div>}
       {account ? (
         <div data-testid="account-connected" className="flex items-center gap-3 rounded-card border border-line px-4 py-3 text-ui">
@@ -91,12 +91,12 @@ export function ConnectApps({ onClose, onTry }: { onClose(): void; onTry(prompt:
         </div>
       ) : mac ? (
         <>
-          {!done && <p className="text-ui text-ink-soft">{t('Hob can use the Calendar and Mail apps on this Mac, with every account you added there: iCloud, Google, Outlook and more.')}</p>}
+          {!done && <p className="text-ui text-ink-soft">{t('Khaled Chat can use the Calendar and Mail apps on this Mac, with every account you added there: iCloud, Google, Outlook and more.')}</p>}
           <ul className={`${done ? '' : 'mt-4'} space-y-2.5 rounded-card border border-line px-4 py-3`}>
             {row(Calendar, t('Calendar'), access?.calendar)}
             {row(Mail, t('Mail'), access?.mail)}
           </ul>
-          {denied && <p className="mt-3 text-ui text-ink-soft">{t('To change it, allow Hob in System Settings → Privacy & Security → Calendars and → Automation.')}</p>}
+          {denied && <p className="mt-3 text-ui text-ink-soft">{t('To change it, allow Khaled Chat in System Settings → Privacy & Security → Calendars and → Automation.')}</p>}
           {providers.length > 0 && !connected(access) && (
             <>
               <p className="mb-3 mt-5 text-ui text-ink-soft">{t('Or sign in to your Google or Microsoft account instead:')}</p>
@@ -110,12 +110,12 @@ export function ConnectApps({ onClose, onTry }: { onClose(): void; onTry(prompt:
           {signInButtons}
         </>
       ) : (
-        <p className="text-ui text-ink-soft">{t("Connecting email and calendar isn't available in this version of Hob yet.")}</p>
+        <p className="text-ui text-ink-soft">{t("Connecting email and calendar isn't available in this version of Khaled Chat yet.")}</p>
       )}
       {error && <p data-testid="account-error" className="mt-3 text-ui text-accent">{error}</p>}
       <p className="mt-4 text-meta text-muted">
         {account || !mac ? t('Your email and calendar go straight from your account to this computer, never to anyone else.') : t('Nothing leaves your computer.')}{' '}
-        {t('Hob only writes email drafts: you send them.')}
+        {t('Khaled Chat only writes email drafts: you send them.')}
       </p>
       <div className="mt-5 flex justify-end gap-2">
         <button className={button.quiet} onClick={onClose}>{done ? t('Done') : t('Not now')}</button>

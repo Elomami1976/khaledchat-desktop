@@ -31,7 +31,7 @@ export const AGENT_BUDGET = effortBudgets('normal', true).thoughtBudget
 
 export type TurnDeps = {
   engine: Engine
-  /** Hob's eyes, for look_at_image */
+  /** Khaled Chat's eyes, for look_at_image */
   vision?: TurnCtx['vision']
   store: Store
   tools: Tool<any>[]
@@ -42,7 +42,7 @@ export type TurnDeps = {
   trash(path: string): Promise<void>
   undoDir: string
   runTmp: string
-  /** Hob's own settings folder: never offered as a folder to give access to */
+  /** Khaled Chat's own settings folder: never offered as a folder to give access to */
   appData?: string
   /** the user's home folder (tests use a pretend one) */
   home?: string
@@ -63,7 +63,7 @@ export type TurnDeps = {
   emit: {
     token(requestId: string, text: string, thought: boolean): void
     step(requestId: string, step: Step): void
-    /** the reply so far is being replaced (Hob caught it claiming something it didn't do) */
+    /** the reply so far is being replaced (Khaled Chat caught it claiming something it didn't do) */
     reset?(requestId: string): void
   }
 }
@@ -72,7 +72,7 @@ export type TurnArgs = { chatId: string; requestId: string; text: string; attach
 const attached = (content: string, attachments: Attachment[]) => attachments.length ? `${content}\n\n[Attached: ${attachments.map((f) => f.name).join(', ')}]` : content
 /** what was in the attached files, kept with the message so follow-ups ("something cheaper?") don't read them again */
 const filesSeen = (attachments: Attachment[]) =>
-  attachments.filter((f) => f.seen).map((f) => PHOTO.test(f.name) ? `[What's in ${f.name}, seen by Hob's image model: ${f.seen}]` : `[What's in ${f.name}, read by Hob:\n${f.seen}]`).join('\n')
+  attachments.filter((f) => f.seen).map((f) => PHOTO.test(f.name) ? `[What's in ${f.name}, seen by Khaled Chat's image model: ${f.seen}]` : `[What's in ${f.name}, read by Khaled Chat:\n${f.seen}]`).join('\n')
 const withFiles = (content: string, attachments: Attachment[]) => [attached(content, attachments), filesSeen(attachments)].filter(Boolean).join('\n')
 /** photos the image model can look at */
 const PHOTO = /\.(jpe?g|png|gif|bmp|webp|heic|heif|tiff?|avif)$/i
@@ -121,7 +121,7 @@ export async function runTurn(d: TurnDeps, a: TurnArgs): Promise<StoredMessage> 
   /** changes already made this turn: models sometimes re-issue them; don't redo or re-show */
   const changesDone = new Set<string>()
   const results = new Map<string, string>()
-  /** attached files Hob has read (this message or earlier ones): what's in them is already in the conversation */
+  /** attached files Khaled Chat has read (this message or earlier ones): what's in them is already in the conversation */
   const alreadyRead = new Map<string, string>()
   const budget = new ToolBudget()
   /** a move, rename or delete actually happened this turn */
@@ -171,17 +171,17 @@ export async function runTurn(d: TurnDeps, a: TurnArgs): Promise<StoredMessage> 
       let granted: string | undefined
       if ('paths' in action && action.paths.some((p) => !p.startsWith(ctx.chatDir))) outside = true
       if (decision.verdict === 'grant') {
-        // a folder Hob can't use yet: ask the user right here instead of failing
+        // a folder Khaled Chat can't use yet: ask the user right here instead of failing
         const folder = decision.folder
         const home = d.home ?? homedir()
         const shown = folder.startsWith(home + sep) ? `~${folder.slice(home.length)}` : folder
         show({ ...step, status: 'waiting' })
-        const answer = await d.approve({ id: step.id, requestId: a.requestId, text: t('Let Hob use your “{folder}” folder?', { folder: basename(folder) }), detail: shown, access: true }, a.signal)
+        const answer = await d.approve({ id: step.id, requestId: a.requestId, text: t('Let Khaled Chat use your “{folder}” folder?', { folder: basename(folder) }), detail: shown, access: true }, a.signal)
         if (answer === 'deny') {
           show({ ...step, status: 'denied', reason: t('You said not now.') })
-          return `The user didn't give Hob access to ${folder}. Don't try again. Tell them it isn't done, and that they can add the folder to a project (the + next to Projects in the sidebar).`
+          return `The user didn't give Khaled Chat access to ${folder}. Don't try again. Tell them it isn't done, and that they can add the folder to a project (the + next to Projects in the sidebar).`
         }
-        // for this chat only; folders Hob uses again and again belong in a project
+        // for this chat only; folders Khaled Chat uses again and again belong in a project
         d.store.addChatGrant(a.chatId, folder)
         grants.push(folder)
         chatGrants.push(folder)
@@ -190,7 +190,7 @@ export async function runTurn(d: TurnDeps, a: TurnArgs): Promise<StoredMessage> 
         decision = gate()
       }
       if (decision.verdict === 'deny') { show({ ...step, status: 'denied', reason: short(decision.reason) }); return decision.reason }
-      if (decision.verdict === 'grant') { show({ ...step, status: 'denied', reason: t('Hob has no access to that folder.') }); return 'Hob still has no access to that folder.' }
+      if (decision.verdict === 'grant') { show({ ...step, status: 'denied', reason: t('Khaled Chat has no access to that folder.') }); return 'Khaled Chat still has no access to that folder.' }
       if (decision.verdict === 'ask') {
         show({ ...step, status: 'waiting' })
         const answer = await d.approve({ id: step.id, requestId: a.requestId, text: tool.ask?.(input) ?? t('{action}?', { action: step.title }), folder: decision.folder, ...(tool.askDetail ? { detail: tool.askDetail(input) } : {}) }, a.signal)
@@ -375,7 +375,7 @@ export async function readAhead(d: PromptDeps & Pick<TurnDeps, 'engine' | 'tools
 
 /** what the model can now do in a folder the user just allowed */
 export const grantedNote = (folder: string) =>
-  `The user just gave Hob access to ${folder}. You can now read everything there, including with run_python and photo_info. Change files there with move_files (many at once), move_file, write_file and delete_file; Hob asks the user before each change, so just call them.`
+  `The user just gave Khaled Chat access to ${folder}. You can now read everything there, including with run_python and photo_info. Change files there with move_files (many at once), move_file, write_file and delete_file; Khaled Chat asks the user before each change, so just call them.`
 
 /** Ask the model for a short title; keeps the first-line title if anything goes wrong. */
 async function nameChat(d: TurnDeps, chatId: string, placeholder: string, user: string, reply: string) {
@@ -413,7 +413,7 @@ const toolsUsed = (steps: Step[]) => {
   const names = [...new Set(steps.filter((s) => s.status === 'done' && s.tool).map((s) => s.tool!))]
   return names.length ? `\n\n${TOOLS_NOTE}${names.join(', ')}]` : ''
 }
-const TOOLS_NOTE = '[Tools Hob used for this reply: '
+const TOOLS_NOTE = '[Tools Khaled Chat used for this reply: '
 /** a model copies the note from earlier replies into its own now and then */
 const withoutToolsNote = (reply: string) => reply.split('\n').filter((l) => !l.trim().startsWith(TOOLS_NOTE)).join('\n').trim()
 
@@ -438,7 +438,7 @@ function codeThatWorked(steps: Step[]): string {
 
 /** the first readable line of an error, for the work log: no tracebacks, no hints meant for the model */
 export function short(text: string): string {
-  const lines = text.split('\n').map((l) => l.trim()).filter((l) => l && !/^(Traceback|File "|Exit code|\^+$|Hob: )/.test(l))
+  const lines = text.split('\n').map((l) => l.trim()).filter((l) => l && !/^(Traceback|File "|Exit code|\^+$|Khaled Chat: )/.test(l))
   const line = (lines.find((l) => /Error|error:|can't|couldn't|not found|No such|denied|failed/i.test(l)) ?? lines[0] ?? '').replace(/^Error:\s*/, '')
   const first = line.split(/(?<=[.!?])\s/)[0]
   return first.length > 160 ? `${first.slice(0, 159)}…` : first

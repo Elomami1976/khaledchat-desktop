@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
-test('Remove Hob deletes its models and data, then quits', async () => {
+test('Remove Khaled Chat deletes its models and data, then quits', async () => {
   const data = mkdtempSync(join(tmpdir(), 'hob-e2e-'))
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: data } })
   const page = await app.firstWindow()
@@ -27,7 +27,7 @@ test('Remove Hob deletes its models and data, then quits', async () => {
   await expect.poll(() => existsSync(data), { timeout: 15_000 }).toBe(false)
 })
 
-test('on Windows and Linux, downloads can go to another drive during setup, and Remove Hob takes them too', async () => {
+test('on Windows and Linux, downloads can go to another drive during setup, and Remove Khaled Chat takes them too', async () => {
   const data = mkdtempSync(join(tmpdir(), 'hob-e2e-'))
   const drive = mkdtempSync(join(tmpdir(), 'hob-drive-'))
   const app = await electron.launch({ args: [main], env: { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: data, HOB_PICK_DOWNLOADS: '1' } })
@@ -36,10 +36,10 @@ test('on Windows and Linux, downloads can go to another drive during setup, and 
   // the folder picker, answered
   await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [dir] })) as typeof dialog.showOpenDialog }, drive)
   await page.getByTestId('setup-downloads-change').click()
-  await expect(page.getByTestId('setup-downloads')).toContainText(join(drive, 'Hob'))
+  await expect(page.getByTestId('setup-downloads')).toContainText(join(drive, 'Khaled Chat'))
   await page.getByTestId('setup-download').click(); await page.getByTestId('download-confirm-ok').click()
   await expect(page.getByTestId('status')).toHaveText(/^Ready$/, { timeout: 20_000 })
-  expect(readdirSync(join(drive, 'Hob', 'models')).some((f) => f.endsWith('.gguf'))).toBe(true)
+  expect(readdirSync(join(drive, 'Khaled Chat', 'models')).some((f) => f.endsWith('.gguf'))).toBe(true)
   expect(readdirSync(join(data, 'models'))).toEqual([])
 
   await page.getByTestId('open-settings').click()
@@ -48,5 +48,5 @@ test('on Windows and Linux, downloads can go to another drive during setup, and 
   await page.getByTestId('remove-hob').click()
   await page.getByTestId('confirm-remove-hob-yes').click()
   await quit
-  await expect.poll(() => existsSync(data) || existsSync(join(drive, 'Hob')), { timeout: 15_000 }).toBe(false)
+  await expect.poll(() => existsSync(data) || existsSync(join(drive, 'Khaled Chat')), { timeout: 15_000 }).toBe(false)
 })

@@ -7,8 +7,8 @@ import { t } from '../shared/i18n'
 
 export const MAX_NAME = 80
 
-/** Folders the user picked: a file stands for its folder; each says why Hob can't use it, if it can't. */
-/** own: Hob's own folders (settings, chat files), never a project folder */
+/** Folders the user picked: a file stands for its folder; each says why Khaled Chat can't use it, if it can't. */
+/** own: Khaled Chat's own folders (settings, chat files), never a project folder */
 export function checkFolders(paths: string[], home?: string, own: string[] = []): FolderCheck[] {
   const seen = new Set<string>()
   const out: FolderCheck[] = []

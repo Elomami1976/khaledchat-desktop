@@ -213,7 +213,7 @@ test('the microphone is available to the page; the camera is not', async () => {
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 
-test('Hob looks at an attached photo and answers from what it sees', async () => {
+test('Khaled Chat looks at an attached photo and answers from what it sees', async () => {
   const src = mkdtempSync(join(tmpdir(), 'hob-src-'))
   writeFileSync(join(src, 'receipt.png'), PNG)
   const { app, page } = await launch()
@@ -245,7 +245,7 @@ test('a pasted screenshot becomes an attachment', async () => {
   await app.close()
 })
 
-test('clicking an attached photo or PDF previews it inside Hob', async () => {
+test('clicking an attached photo or PDF previews it inside Khaled Chat', async () => {
   const src = mkdtempSync(join(tmpdir(), 'hob-src-'))
   writeFileSync(join(src, 'receipt.png'), PNG)
   const { copyFileSync } = await import('node:fs')
@@ -291,7 +291,7 @@ test('the mic menu lists microphones and keeps the dictation language', async ()
   await app.close()
 })
 
-test('how long Hob thinks is picked beside the mic, Normal at first, and kept', async () => {
+test('how long Khaled Chat thinks is picked beside the mic, Normal at first, and kept', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'hob-e2e-'))
   const { app, page } = await launch(userData)
   await ready(page)
@@ -328,7 +328,7 @@ test('a dictation error goes away once the person writes again', async () => {
   await app.close()
 })
 
-test('Mac: "Connect my email and calendar" asks for access once, then Hob reads the calendar and drafts email', async () => {
+test('Mac: "Connect my email and calendar" asks for access once, then Khaled Chat reads the calendar and drafts email', async () => {
   test.skip(process.platform !== 'darwin', 'Calendar & Mail is Mac only')
   const { app, page } = await launch()
   await ready(page)
@@ -443,7 +443,7 @@ test('Mac: partial access stays unconnected, an access error can be retried, and
     const idea = page.getByTestId('suggestion').filter({ hasText: 'Connect my email and calendar' })
     await expect(idea).toBeVisible()
 
-    // Permissions may also change in System Settings while Hob is in the background.
+    // Permissions may also change in System Settings while Khaled Chat is in the background.
     await app.evaluate(({ ipcMain }) => {
       ipcMain.removeHandler('mac:access')
       ipcMain.handle('mac:access', () => ({ calendar: 'granted', mail: 'granted' }))
@@ -482,7 +482,7 @@ test('a sent message can be edited, and a reply that went wrong tried again; the
   await page.getByTestId('composer-send').click()
   await expect(page.getByTestId('message-assistant').last()).toContainText('You said: hello there')
 
-  // edit: the message is replaced, the reply after it goes, and Hob answers the new one
+  // edit: the message is replaced, the reply after it goes, and Khaled Chat answers the new one
   const mine = page.getByTestId('message-user').first()
   await mine.hover()
   await mine.getByTestId('edit-message').click()

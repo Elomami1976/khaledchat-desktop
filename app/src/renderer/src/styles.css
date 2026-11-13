@@ -11,7 +11,7 @@
 }
 
 /*
- * Hob design system
+ * Khaled Chat design system
  * Type: core sizes. meta 12 (labels, hints) · ui 13 (sidebar, steps, buttons) · body 15 (messages, composer) · title 22 (screen titles)
  * Color: paper (app) · sidebar · surface (composer, cards) · ink · ink-soft (secondary text) · muted (hints, placeholders) · line · line-strong · accent
  * Radius: 8 controls · 12 cards · 18 composer. Icons: lucide, 16px in UI, 14px in steps.
@@ -29,19 +29,20 @@
   --text-title: 22px;
   --text-title--line-height: 28px;
 
-  --color-paper: #FAFAFA;
-  --color-sidebar: #FAFAFA;
+  /* Khaled Chat: monochrome brand palette */
+  --color-paper: #FAFAF8;
+  --color-sidebar: #F5F5F3;
   --color-surface: #FFFFFF;
-  --color-ink: #1C1C1C;
-  --color-ink-soft: #575757;
-  --color-muted: #818181;
-  --color-line: #E7E7E7;
-  --color-line-strong: #D6D6D6;
+  --color-ink: #242424;
+  --color-ink-soft: #4F4F4F;
+  --color-muted: #737373;
+  --color-line: #ECECEA;
+  --color-line-strong: #DEDEDA;
   --color-action: #242424;
-  --color-on-action: #ffffff;
-  --color-selection: #E8E8E8;
-  --color-focus: #888888;
-  --color-accent: #c2410c;
+  --color-on-action: #F5F5F3;
+  --color-selection: #ECECEA;
+  --color-focus: #737373;
+  --color-accent: #242424;
   /* the mic while it's recording */
   --color-rec: #dbe7fb;
   --color-rec-ink: #2f5bb7;
@@ -67,18 +68,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-paper: #191817;
-    --color-sidebar: #141312;
-    --color-surface: #22201e;
-    --color-ink: #f2f1ef;
-    --color-ink-soft: #c4beb8;
-    --color-muted: #938c85;
-    --color-line: #2f2c29;
-    --color-line-strong: #423e3a;
-    --color-action: #e6e2de;
-    --color-on-action: #211f1d;
-    --color-selection: #302d2a;
-    --color-focus: #77716b;
+    --color-paper: #202020;
+    --color-sidebar: #1B1B1B;
+    --color-surface: #242424;
+    --color-ink: #F5F5F3;
+    --color-ink-soft: #DEDEDA;
+    --color-muted: #A3A3A0;
+    --color-line: #2E2E2E;
+    --color-line-strong: #3A3A3A;
+    --color-action: #F5F5F3;
+    --color-on-action: #202020;
+    --color-selection: #333333;
+    --color-focus: #A3A3A0;
+    --color-accent: #F5F5F3;
     --color-rec: #24344f;
     --color-rec-ink: #9cc0ff;
     --color-danger: #f97066;
@@ -129,7 +131,7 @@ body {
   --tw-prose-td-borders: var(--color-line);
   --tw-prose-quotes: var(--color-ink);
   --tw-prose-quote-borders: var(--color-line-strong);
-  /* section breaks (---): Hob's soft divider, not the prose default (too bright in dark mode) */
+  /* section breaks (---): Khaled Chat's soft divider, not the prose default (too bright in dark mode) */
   --tw-prose-hr: var(--color-line);
 }
 .reply.prose :where(p, ul, ol, table, pre) { margin-top: 0.6em; margin-bottom: 0.6em; }
@@ -154,7 +156,7 @@ html[data-text-size="large"] { --reply-step: 2px; }
 /* new text fades in instead of popping */
 @keyframes fade-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
 .fade-in { animation: fade-in 400ms ease-out both; }
-/* First loading screen: Hob, then the status, then the reassurance. */
+/* First loading screen: Khaled Chat, then the status, then the reassurance. */
 @keyframes setup-appear { from { opacity: 0; } to { opacity: 1; } }
 .setup-status { animation: setup-appear 400ms ease-out 150ms both; }
 .setup-assurance { animation: setup-appear 400ms ease-out 450ms both; }
@@ -168,8 +170,8 @@ html[data-text-size="large"] { --reply-step: 2px; }
 .fw { animation: fw 650ms cubic-bezier(0.2, 0.6, 0.2, 1) both; }
 @media (prefers-reduced-motion: reduce) { .reveal, .pop, .fade-in, .fw, .setup-status, .setup-assurance { animation: none; } }
 
-/* Carry Hob between screens at full opacity; only the surrounding content fades. */
-/* Keep the chat live while Hob arrives, instead of capturing the whole document. */
+/* Carry Khaled Chat between screens at full opacity; only the surrounding content fades. */
+/* Keep the chat live while Khaled Chat arrives, instead of capturing the whole document. */
 :root { view-transition-name: none; }
 .onboarding { view-transition-name: setup-screen; background: var(--color-paper); }
 .onboarding-mascot .hob-mascot, .chat-greeting .hob-mascot { view-transition-name: hob-setup; }
@@ -187,7 +189,7 @@ html[data-text-size="large"] { --reply-step: 2px; }
 .onboarding, .setup-dialog { --setup-selection: var(--color-selection); --setup-hover: color-mix(in srgb, var(--color-line) 40%, var(--color-surface)); color-scheme: light; }
 .onboarding-screen { flex: 1; min-height: 0; display: flex; align-items: safe center; justify-content: center; padding: 28px 38px 42px; overflow: auto; }
 .onboarding-content { position: relative; width: 430px; max-width: 100%; text-align: center; }
-.onboarding-mascot { width: 72px; height: 72px; margin: 0 auto 25px; }
+.onboarding-mascot { width: max-content; height: 72px; margin: 0 auto 25px; }
 .onboarding-mascot svg[data-testid=mascot] { width: 100%; height: 100%; }
 .onboarding-mascot .hob-interaction { width: 100%; height: 100%; }
 .onboarding[data-phase=probing] .onboarding-mascot { transform: translateY(133px) scale(1.555556); }
@@ -278,7 +280,7 @@ html[data-text-size="large"] { --reply-step: 2px; }
 body:has(> [data-scrim]) #root [data-scrim], body > [data-scrim]:has(~ [data-scrim]) { background-color: transparent; }
 body:has(#root [data-scrim]) > [data-scrim], body > [data-scrim] ~ [data-scrim] { animation: none; }
 
-/* One Hob at a time: the greeting shows Hob until a conversation starts. */
+/* One Khaled Chat at a time: the greeting shows Khaled Chat until a conversation starts. */
 .status-presence { width: 24px; height: 24px; flex: none; display: flex; align-items: center; justify-content: center; }
 .status-presence:has(.hob-mascot) > .status-dot { display: none; }
 #root:has(.chat-greeting) .status-presence .hob-interaction { display: none; }

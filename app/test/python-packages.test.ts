@@ -38,7 +38,7 @@ it('install makes the venv once, then only runs pip; bad names never reach pip',
   calls.length = 0
   await installPackages('/py', venv, '3.12.14', ['six'], exec)
   expect(calls.map((c) => c[1])).toEqual(['pip'])
-  // a new Hob Python remakes it
+  // a new Khaled Chat Python remakes it
   calls.length = 0
   await installPackages('/py', venv, '3.13.0', ['six'], exec)
   expect(calls[0][1]).toBe('venv')

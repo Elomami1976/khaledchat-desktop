@@ -42,7 +42,7 @@ describe('PluginRegistry', () => {
     const w = world()
     plugin(w.builtinDir, 'weather', { icon: 'sun', permissions: { network: true }, tools: [{ native: 'get_weather' }], starters: [{ title: 'Rain?', prompt: 'Will it rain?' }], prompt: 'For weather, use get_weather.' })
     plugin(w.builtinDir, 'trip', {}, { 'plan-trip': '---\nname: plan-trip\ndescription: Plan trips\n---\nDo it day by day.' })
-    // tools built into Hob run no plugin code
+    // tools built into Khaled Chat run no plugin code
     plugin(w.builtinDir, 'cal', { tools: [{ native: 'calendar_events' }] })
     const r = w.make()
     expect(r.list().map((p) => [p.id, p.enabled, p.trust])).toEqual([['cal', true, 'builtin'], ['trip', true, 'instructions'], ['weather', true, 'network']])
@@ -61,7 +61,7 @@ describe('PluginRegistry', () => {
     const r = w.make()
     const broken = r.list().find((p) => p.id === 'broken')!
     expect(broken).toMatchObject({ enabled: false, error: expect.stringContaining('hob-plugin.json') })
-    // only plugins that ship with Hob may use Hob's own code
+    // only plugins that ship with Khaled Chat may use Khaled Chat's own code
     expect(r.list().find((p) => p.id === 'sneaky')).toMatchObject({ enabled: false, error: expect.stringContaining('native') })
     expect(await r.tools()).toEqual([])
   })
@@ -201,7 +201,7 @@ describe('review fixes', () => {
     expect(ask('get_and_reset', { readOnlyHint: false })).toEqual({ kind: 'app', ask: true })
   })
 
-  it('install refuses my-skills and folders already inside Hob; connectApp refuses my-skills', () => {
+  it('install refuses my-skills and folders already inside Khaled Chat; connectApp refuses my-skills', () => {
     const w = world()
     const r = w.make()
     r.saveSkill({ name: 'keep', description: 'd', instructions: 'i' })
