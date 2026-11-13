@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.0 (release candidate, unreleased)
+## 0.1.0 (2026-11-13)
+
+### Held back in this version
+- Code tools (Python) are off on Windows: model-written code would not be isolated enough from your files and the network.
+- Web search (SearXNG, AGPL-3.0) is off everywhere while its licensing is reviewed. Reading web pages still works when Web access is on.
+- The installer is not code-signed yet, so Windows SmartScreen shows a warning.
+- English and Arabic are complete; in the other 30 languages, text added by Khaled Chat is still in English.
+
 First Khaled Chat build, based on Hob 0.2.6 (`hob-baseline-0.2.6`).
 
 ### Privacy and consent

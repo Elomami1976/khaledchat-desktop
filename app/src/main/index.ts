@@ -33,7 +33,7 @@ import { pickVision, VISION_MODELS, visionFitsGpu, visionGB } from './vision/cat
 import type { VisionState } from '../shared/types'
 import os from 'node:os'
 import { loadSettings, localeOf, updateSettings, webAccessOn } from './settings'
-import { setLanguage } from '../shared/i18n'
+import { msg, setLanguage } from '../shared/i18n'
 import { systemLocale } from './locale'
 import { PluginRegistry } from './plugins/registry'
 import { loginPath } from './plugins/shellPath'
@@ -49,6 +49,8 @@ const FAKE = process.env.HOB_FAKE === '1'
 if (process.platform === 'win32') app.setAppUserModelId('com.frigade.hob')
 /** with HOB_FAKE: the stand-in model, but the real tools (Python, web search, the image model), for the smoke test */
 const REAL_TOOLS = FAKE && process.env.HOB_REAL_TOOLS === '1'
+/** Khaled Chat 0.1.0: features held back in the shipped app (see RELEASE_CHECKLIST.md); tests and HOB_ALLOW_ALL=1 lift them */
+const RELEASE_GATES = !FAKE && process.env.HOB_ALLOW_ALL !== '1'
 // One profile folder however Khaled Chat is started (dev, packaged, tests): ~/Library/Application Support/Khaled Chat etc.
 app.setName('Khaled Chat')
 // renamed from Garth (and Mabel, Thrum): carry an existing profile (models, chats, settings) over once
@@ -297,8 +299,8 @@ app.whenReady().then(() => {
   }
   const components = new Components({
     ...(python ? {
-      python: { supported: python.supported, isReady: () => python.isReady(), ensure: () => python.ensure(), cancel: () => python.cancel(), root: python.dir, platformKey: `${process.platform}-${process.arch}` },
-      search: { supported: python.supported, isReady: () => python.searchReady, ensure: () => python.ensureSearxng(), cancel: () => python.cancel() },
+      python: { supported: python.supported, ...(RELEASE_GATES && process.platform === 'win32' ? { disabledReason: msg('Not available in this version on Windows: code would run without enough isolation from your files and the network.') } : {}), isReady: () => python.isReady(), ensure: () => python.ensure(), cancel: () => python.cancel(), root: python.dir, platformKey: `${process.platform}-${process.arch}` },
+      search: { supported: python.supported, ...(RELEASE_GATES ? { disabledReason: msg('Not available in this version: web search is still under review.') } : {}), isReady: () => python.searchReady, ensure: () => python.ensureSearxng(), cancel: () => python.cancel() },
     } : {}),
     ...(!FAKE ? { speech: { supported: true, isReady: () => speech.isReady(), ensure: () => speech.ensure(), cancel: () => speech.cancel(), get root() { return paths.speech } } } : {}),
     ...(vision.installer ? { vision: { ...vision.installer, get root() { return paths.vision } } } : {}),

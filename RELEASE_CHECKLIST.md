@@ -1,6 +1,10 @@
 # Release checklist
 
-## Release blockers (open)
+## 0.1.0 decisions
+- Released unsigned (SmartScreen warning), with Code tools gated off on Windows and Web search gated off everywhere (`RELEASE_GATES` in `app/src/main/index.ts`; `HOB_ALLOW_ALL=1` lifts them for testing).
+- Other languages ship with English for Khaled Chat text.
+
+## Open items (were release blockers)
 
 1. **Performance on low-end CPUs.** The real-model test passes on an i5-2450M. In Full mode the first reply takes 10–12 min. Simple chat mode (Auto on CPU-only PCs) brings it to about 1–2.5 min. Still to test on a newer CPU and a GPU, where Full mode should be usable.
    - check load, streaming, stop, switching and unloading on CPU-only Windows (this PC's CPU has AVX but not AVX2);

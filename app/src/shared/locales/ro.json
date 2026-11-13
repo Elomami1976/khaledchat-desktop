@@ -849,5 +849,7 @@
   "Full chat is on now.": "Full chat is on now.",
   "Simple": "Simple",
   "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.": "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.",
-  "Simple chat is on now.": "Simple chat is on now."
+  "Simple chat is on now.": "Simple chat is on now.",
+  "Not available in this version on Windows: code would run without enough isolation from your files and the network.": "Not available in this version on Windows: code would run without enough isolation from your files and the network.",
+  "Not available in this version: web search is still under review.": "Not available in this version: web search is still under review."
 }

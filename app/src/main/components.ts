@@ -11,6 +11,8 @@ import { msg } from '../shared/i18n'
  */
 export type Installable = {
   supported: boolean
+  /** Khaled Chat: switched off in this version, with the reason shown in Settings (release gate) */
+  disabledReason?: string
   isReady(): boolean
   /** downloads it; rejects with ConsentRequiredError without the person's OK */
   ensure(): Promise<unknown>
@@ -39,8 +41,8 @@ export class Components {
   list(): ComponentState[] {
     return (['python', 'search', 'speech', 'vision'] as ComponentId[]).map((id) => {
       const p = this.part(id)
-      const available = !!p?.supported && (id !== 'search' || !!this.d.python?.isReady())
-      const unavailableReason = !p?.supported ? msg('Not available on this computer.') : id === 'search' && !this.d.python?.isReady() ? msg('Install Code tools first.') : undefined
+      const available = !!p?.supported && !p.disabledReason && (id !== 'search' || !!this.d.python?.isReady())
+      const unavailableReason = p?.disabledReason ? p.disabledReason : !p?.supported ? msg('Not available on this computer.') : id === 'search' && !this.d.python?.isReady() ? msg('Install Code tools first.') : undefined
       const err = this.errors.get(id)
       return {
         id, installed: !!p?.isReady(), installing: this.busy.has(id), available,
@@ -104,7 +106,7 @@ export class Components {
   /** after the person's OK (the IPC handler checks it): download in the background, reporting progress */
   install(id: ComponentId): ComponentState[] {
     const p = this.part(id)
-    if (!p || this.busy.has(id) || p.isReady()) return this.list()
+    if (!p || p.disabledReason || this.busy.has(id) || p.isReady()) return this.list()
     this.errors.delete(id)
     this.busy.set(id, {})
     const done = (err?: unknown) => {
