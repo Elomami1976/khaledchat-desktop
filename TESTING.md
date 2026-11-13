@@ -43,9 +43,27 @@ New regressions: none known after the fixes above.
 | `test/khaled-ui.test.ts` | Greeting, first name, branding metadata, Arabic coverage |
 | `e2e/consent.spec.ts`, `security.spec.ts`, `netlog.spec.ts`, `khaled-ui.spec.ts`, `packaged.spec.ts` | The same areas, in the running app |
 
+## Real-model test (approved download, 2026-11-13)
+
+`HOB_REAL=1 HOB_REAL_USER_DATA=<dir> pnpm exec playwright test e2e/real-engine.spec.ts` with Qwen3 1.7B Q8_0 (1.83 GB, Apache-2.0), on this PC (i5-2450M, AVX without AVX2, 8 GB RAM, CPU only).
+
+| Step | Result |
+|---|---|
+| Recommendation | Qwen3 1.7B, recommended by the picker for this PC |
+| Consent dialog | Name, 1.83 GB, huggingface.co, destination folder, Apache-2.0, SHA-256 note. Nothing was fetched before Download was clicked |
+| Download and verify | 1,834,426,016 bytes; SHA-256 verified (`.ok` marker) |
+| Load | Works on the CPU. Download plus first load took about 27 min. Later starts reach Ready in under 20 min, sometimes after the engine restarts itself "without the graphics card" |
+| First reply ("pong") | Correct, but slow: **10–12 min**. Reading the 4,240-token agent prompt takes about 460–500 s (≈9 tok/s); generation runs at about 0.7–1 tok/s, plus Qwen3's thinking |
+| Streaming | Verified: the reply grows on screen while it is generated |
+| Stop | Verified: the reply ends with "Stopped." and the composer comes back |
+| Persistence | Verified: after a restart the app reaches Ready again, and the SQLite store holds all chats and messages, including the stopped reply |
+| Spec status | 1 run passed every step up to the restart. The spec's final check (sidebar chat item) failed because the sidebar is hidden in the background window. It is now checked through the app API; that fix hasn't been re-run |
+
+**Conclusion:** local inference works end to end on a 2011 dual-core CPU without AVX2, but it is too slow to be pleasant there. 8 GB machines with a newer CPU (AVX2) or a GPU should be much faster; that is not measured. The agent's long system prompt dominates the first reply. A shorter prompt or a "simple chat" mode for low-end hardware is a recommended follow-up.
+
 ## Not tested
 
-- **Real-model inference:** downloading a model, loading it, streaming, and GPU vs CPU behaviour. No model download was authorized, so chat behaviour is verified only with the stand-in engine (`HOB_FAKE=1`). The real engine was exercised only for the hardware probe, in the packaged build.
+- **Real-model inference on GPU machines,** and on any other machine.
 - Windows 11.
 - Machines with NVIDIA, AMD or Intel GPUs.
 - High-DPI and multi-monitor setups.
