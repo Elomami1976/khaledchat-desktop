@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 (2026-11-17)
+
+### New models
+- Qwen3 4B (2.50 GB, Apache-2.0): offered on computers with about 12 GB of memory or more, or with a graphics card.
+- Qwen3 8B (5.03 GB, Apache-2.0): offered on computers with a larger graphics card.
+- Qwen3 1.7B Compact (1.11 GB, Q4_K_M, Apache-2.0): a smaller, faster version of Qwen3 1.7B. It is now the recommendation for 8 GB computers without a graphics card.
+
+All three are pinned to exact files with SHA-256 checksums and are downloaded only after you confirm. They have not yet been tested end to end in Khaled Chat on real hardware. Computers with 4 GB of memory are still not offered a model.
+
 ## 0.1.0 (2026-11-13)
 
 ### Held back in this version

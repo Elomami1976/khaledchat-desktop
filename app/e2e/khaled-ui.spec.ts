@@ -31,7 +31,7 @@ test('greeting with first name, hardware and about', async () => {
   await page.getByTestId('settings-nav-hardware').click()
   await expect(page.getByTestId('hardware-info')).toContainText('threads')
   await page.getByTestId('settings-nav-about').click()
-  await expect(page.getByTestId('about-version')).toContainText('0.1.0')
+  await expect(page.getByTestId('about-version')).toContainText('0.1.1')
   await expect(page.getByTestId('about-attribution')).toContainText('Hob by Frigade')
   await expect(page.getByTestId('about-website')).toHaveAttribute('href', 'https://khaledchat.io')
   await page.getByTestId('settings-close').click()
