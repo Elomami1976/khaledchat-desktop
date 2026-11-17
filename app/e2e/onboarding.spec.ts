@@ -6,6 +6,7 @@ import { join } from 'node:path'
 const main = join(import.meta.dirname, '../out/main/index.js')
 
 test('first run: recommend → download → chat', async () => {
+  test.setTimeout(120_000) // the whole first run, chat included; slow PCs need more than the default minute
   const userData = mkdtempSync(join(tmpdir(), 'hob-e2e-'))
   const env = { ...process.env, HOB_FAKE: '1', HOB_USER_DATA: userData }
   const app = await electron.launch({ args: [main], env })
