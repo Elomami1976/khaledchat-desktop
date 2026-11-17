@@ -905,5 +905,8 @@
   "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.": "الوضع البسيط يجيب أسرع بكثير على الأجهزة القديمة: بلا ملفات أو أدوات أو ويب. يستخدمه الوضع التلقائي عند عدم توفر تسريع رسومي.",
   "Simple chat is on now.": "المحادثة البسيطة مفعّلة الآن.",
   "Not available in this version on Windows: code would run without enough isolation from your files and the network.": "غير متاح في هذا الإصدار على Windows: ستعمل الشيفرة دون عزل كافٍ عن ملفاتك والشبكة.",
-  "Not available in this version: web search is still under review.": "غير متاح في هذا الإصدار: البحث في الويب لا يزال قيد المراجعة."
+  "Not available in this version: web search is still under review.": "غير متاح في هذا الإصدار: البحث في الويب لا يزال قيد المراجعة.",
+  "Qwen3 1.7B made smaller, for computers with the least memory.": "نسخة أصغر من Qwen3 1.7B للأجهزة ذات الذاكرة الأقل.",
+  "Solid all-rounder for 16 GB computers. For writing, analysis and code.": "نموذج متكامل لأجهزة 16 غيغابايت. للكتابة والتحليل والبرمجة.",
+  "Strong for its size, with good Arabic. For chat, writing and summaries.": "قوي بالنسبة لحجمه، ويجيد العربية. للمحادثة والكتابة والتلخيص."
 }

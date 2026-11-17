@@ -172,9 +172,10 @@ describe('SetupController', () => {
     const s = c.state as Extract<SetupState, { phase: 'choose' }>
     // on this 32 GB Mac the tiny last-resort model and the squeezed builds aren't offered: better ones run
     expect(s.models.map((m) => m.id)).not.toContain('qwen3-1.7b')
+    expect(s.models.map((m) => m.id)).not.toContain('qwen3-1.7b-compact')
     expect(s.models.map((m) => m.id)).not.toContain('gemma-4-26b-a4b-compact')
     expect(s.models.map((m) => m.id)).not.toContain('gemma-4-e4b-compact')
-    expect(s.models).toHaveLength(catalog.models.length - 3)
+    expect(s.models).toHaveLength(catalog.models.length - 4)
     expect(s.models.find((m) => m.id === 'gemma-4-26b-a4b')).toMatchObject({ available: true, recommended: true })
     expect(s.models.find((m) => m.id === 'gpt-oss-120b')).toMatchObject({ available: false, reason: 'memory' })
     expect(s.models.every((m) => m.description.length > 0)).toBe(true)

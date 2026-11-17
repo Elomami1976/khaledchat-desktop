@@ -851,5 +851,8 @@
   "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.": "Simple answers much faster on older computers: no files, tools or web. Auto uses it when there is no graphics acceleration.",
   "Simple chat is on now.": "Simple chat is on now.",
   "Not available in this version on Windows: code would run without enough isolation from your files and the network.": "Not available in this version on Windows: code would run without enough isolation from your files and the network.",
-  "Not available in this version: web search is still under review.": "Not available in this version: web search is still under review."
+  "Not available in this version: web search is still under review.": "Not available in this version: web search is still under review.",
+  "Qwen3 1.7B made smaller, for computers with the least memory.": "Qwen3 1.7B made smaller, for computers with the least memory.",
+  "Solid all-rounder for 16 GB computers. For writing, analysis and code.": "Solid all-rounder for 16 GB computers. For writing, analysis and code.",
+  "Strong for its size, with good Arabic. For chat, writing and summaries.": "Strong for its size, with good Arabic. For chat, writing and summaries."
 }
